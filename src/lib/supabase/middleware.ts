@@ -25,9 +25,14 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
+  // Use getSession() instead of getUser() to avoid a network call on every navigation.
+  // JWT is read directly from the cookie — no round-trip to Supabase auth server.
+  // Data access is still protected by RLS policies on the database side.
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  const user = session?.user ?? null;
 
   // Public routes
   const publicPaths = ['/auth/login', '/auth/callback', '/auth/error'];
