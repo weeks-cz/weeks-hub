@@ -57,7 +57,7 @@ export function useTasks(filters?: TaskFilters) {
   useEffect(() => {
     fetchTasks();
 
-    // Realtime subscription
+    // Realtime subscription for cross-user updates
     const channel = supabase
       .channel('tasks-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
@@ -73,6 +73,23 @@ export function useTasks(filters?: TaskFilters) {
     };
   }, [fetchTasks]);
 
+  // Helper: get user ID from local session (no network call)
+  const getUserId = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.user?.id ?? null;
+  };
+
+  // Helper: log activity without blocking the caller
+  const logActivity = (userId: string, action_type: string, entity_id: string, metadata: Record<string, unknown> = {}) => {
+    supabase.from('activity_log').insert({
+      user_id: userId,
+      action_type,
+      entity_type: 'task',
+      entity_id,
+      metadata,
+    }).then(() => {});
+  };
+
   const createTask = async (task: {
     title: string;
     description?: string;
@@ -82,8 +99,8 @@ export function useTasks(filters?: TaskFilters) {
     assignee_id?: string | null;
     labelIds?: string[];
   }) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
+    const userId = await getUserId();
+    if (!userId) return null;
 
     // Get max position for the status column
     const { data: maxPosData } = await supabase
@@ -104,7 +121,7 @@ export function useTasks(filters?: TaskFilters) {
         priority: task.priority || 'medium',
         due_date: task.due_date || null,
         assignee_id: task.assignee_id || null,
-        created_by: user.id,
+        created_by: userId,
         position,
       })
       .select()
@@ -116,15 +133,9 @@ export function useTasks(filters?: TaskFilters) {
       );
     }
 
-    // Log activity
     if (newTask) {
-      await supabase.from('activity_log').insert({
-        user_id: user.id,
-        action_type: 'task_created',
-        entity_type: 'task',
-        entity_id: newTask.id,
-        metadata: { title: task.title },
-      });
+      logActivity(userId, 'task_created', newTask.id, { title: task.title });
+      fetchTasks();
     }
 
     return newTask;
@@ -148,57 +159,57 @@ export function useTasks(filters?: TaskFilters) {
       }
     }
 
-    // Log activity
     if (!error) {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase.from('activity_log').insert({
-          user_id: user.id,
-          action_type: 'task_updated',
-          entity_type: 'task',
-          entity_id: taskId,
-          metadata: { updates: Object.keys(cleanUpdates) },
-        });
+      const userId = await getUserId();
+      if (userId) {
+        logActivity(userId, 'task_updated', taskId, { updates: Object.keys(cleanUpdates) });
       }
+      fetchTasks();
     }
 
     return !error;
   };
 
   const moveTask = async (taskId: string, newStatus: TaskStatus, newPosition: number) => {
+    // Optimistic update: move task in local state immediately
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId ? { ...t, status: newStatus, position: newPosition } : t
+      )
+    );
+
     const { error } = await supabase
       .from('tasks')
       .update({ status: newStatus, position: newPosition })
       .eq('id', taskId);
 
     if (!error) {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase.from('activity_log').insert({
-          user_id: user.id,
-          action_type: 'task_moved',
-          entity_type: 'task',
-          entity_id: taskId,
-          metadata: { new_status: newStatus },
-        });
+      const userId = await getUserId();
+      if (userId) {
+        logActivity(userId, 'task_moved', taskId, { new_status: newStatus });
       }
     }
+
+    // Refetch to sync with server
+    fetchTasks();
 
     return !error;
   };
 
   const deleteTask = async (taskId: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    // Optimistic update: remove from local state immediately
+    setTasks((prev) => prev.filter((t) => t.id !== taskId));
+
+    const userId = await getUserId();
     const { error } = await supabase.from('tasks').delete().eq('id', taskId);
 
-    if (!error && user) {
-      await supabase.from('activity_log').insert({
-        user_id: user.id,
-        action_type: 'task_deleted',
-        entity_type: 'task',
-        entity_id: taskId,
-        metadata: {},
-      });
+    if (!error && userId) {
+      logActivity(userId, 'task_deleted', taskId);
+    }
+
+    if (error) {
+      // Revert on failure
+      fetchTasks();
     }
 
     return !error;
@@ -206,8 +217,8 @@ export function useTasks(filters?: TaskFilters) {
 
   // Subtask operations
   const addSubtask = async (taskId: string, title: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
+    const userId = await getUserId();
+    if (!userId) return null;
 
     const { data: maxPosData } = await supabase
       .from('subtasks')
@@ -224,6 +235,8 @@ export function useTasks(filters?: TaskFilters) {
       .select()
       .single();
 
+    if (!error) fetchTasks();
+
     return error ? null : data;
   };
 
@@ -232,11 +245,17 @@ export function useTasks(filters?: TaskFilters) {
       .from('subtasks')
       .update({ completed })
       .eq('id', subtaskId);
+
+    if (!error) fetchTasks();
+
     return !error;
   };
 
   const deleteSubtask = async (subtaskId: string) => {
     const { error } = await supabase.from('subtasks').delete().eq('id', subtaskId);
+
+    if (!error) fetchTasks();
+
     return !error;
   };
 

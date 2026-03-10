@@ -44,6 +44,23 @@ export function useEvents() {
     };
   }, [fetchEvents]);
 
+  // Helper: get user ID from local session (no network call)
+  const getUserId = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.user?.id ?? null;
+  };
+
+  // Helper: log activity without blocking the caller
+  const logActivity = (userId: string, action_type: string, entity_id: string, metadata: Record<string, unknown> = {}) => {
+    supabase.from('activity_log').insert({
+      user_id: userId,
+      action_type,
+      entity_type: 'event',
+      entity_id,
+      metadata,
+    }).then(() => {});
+  };
+
   const createEvent = async (event: {
     title: string;
     description?: string;
@@ -54,8 +71,8 @@ export function useEvents() {
     color?: string;
     attendeeIds?: string[];
   }) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
+    const userId = await getUserId();
+    if (!userId) return null;
 
     const { data: newEvent, error } = await supabase
       .from('calendar_events')
@@ -67,25 +84,20 @@ export function useEvents() {
         end_date: event.end_date || null,
         all_day: event.all_day ?? false,
         color: event.color || null,
-        created_by: user.id,
+        created_by: userId,
       })
       .select()
       .single();
 
     if (!error && newEvent && event.attendeeIds?.length) {
       await supabase.from('event_attendees').insert(
-        event.attendeeIds.map((userId) => ({ event_id: newEvent.id, user_id: userId }))
+        event.attendeeIds.map((uid) => ({ event_id: newEvent.id, user_id: uid }))
       );
     }
 
     if (newEvent) {
-      await supabase.from('activity_log').insert({
-        user_id: user.id,
-        action_type: 'event_created',
-        entity_type: 'event',
-        entity_id: newEvent.id,
-        metadata: { title: event.title, event_type: event.event_type },
-      });
+      logActivity(userId, 'event_created', newEvent.id, { title: event.title, event_type: event.event_type });
+      fetchEvents();
     }
 
     return newEvent;
@@ -103,26 +115,29 @@ export function useEvents() {
       await supabase.from('event_attendees').delete().eq('event_id', eventId);
       if (attendeeIds.length > 0) {
         await supabase.from('event_attendees').insert(
-          attendeeIds.map((userId) => ({ event_id: eventId, user_id: userId }))
+          attendeeIds.map((uid) => ({ event_id: eventId, user_id: uid }))
         );
       }
     }
+
+    if (!error) fetchEvents();
 
     return !error;
   };
 
   const deleteEvent = async (eventId: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    // Optimistic update
+    setEvents((prev) => prev.filter((e) => e.id !== eventId));
+
+    const userId = await getUserId();
     const { error } = await supabase.from('calendar_events').delete().eq('id', eventId);
 
-    if (!error && user) {
-      await supabase.from('activity_log').insert({
-        user_id: user.id,
-        action_type: 'event_deleted',
-        entity_type: 'event',
-        entity_id: eventId,
-        metadata: {},
-      });
+    if (!error && userId) {
+      logActivity(userId, 'event_deleted', eventId);
+    }
+
+    if (error) {
+      fetchEvents(); // Revert on failure
     }
 
     return !error;
