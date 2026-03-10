@@ -8,7 +8,15 @@ import { Suspense } from 'react';
 const ERROR_MESSAGES: Record<string, { title: string; message: string }> = {
   invalid_domain: {
     title: 'Nepovolený účet',
-    message: 'Přihlášení je povoleno pouze pro @weeks.cz emaily. Použij prosím svůj firemní Google účet.',
+    message: 'Přihlášení je povoleno pouze pro @weeks.cz emaily. Použij prosím svůj firemní účet.',
+  },
+  invalid_email: {
+    title: 'Neplatný email',
+    message: 'Zadaný email není @weeks.cz adresa. Přihlášení je povoleno pouze pro firemní emaily.',
+  },
+  magic_link_failed: {
+    title: 'Neplatný odkaz',
+    message: 'Přihlašovací odkaz je neplatný nebo vypršel. Nech si poslat nový.',
   },
   auth_failed: {
     title: 'Přihlášení selhalo',
