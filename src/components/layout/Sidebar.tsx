@@ -1,0 +1,83 @@
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { LayoutDashboard, Kanban, Calendar, User, LogOut } from 'lucide-react';
+import { cn } from '@/lib/utils/cn';
+import { useAuth } from '@/contexts/AuthContext';
+import { NAV_ITEMS, ROUTES, APP_NAME } from '@/lib/utils/constants';
+
+const ICONS = {
+  LayoutDashboard,
+  Kanban,
+  Calendar,
+} as const;
+
+export function Sidebar() {
+  const pathname = usePathname();
+  const { user, signOut } = useAuth();
+
+  return (
+    <aside className="hidden lg:flex flex-col w-[260px] h-screen bg-[var(--bg-surface)] border-r border-[var(--border-default)] fixed left-0 top-0 z-30">
+      {/* Logo */}
+      <div className="flex items-center gap-3 px-6 h-16 border-b border-[var(--border-default)]">
+        <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)] flex items-center justify-center">
+          <span className="text-sm font-bold text-white font-[family-name:var(--font-heading)]">W</span>
+        </div>
+        <span className="text-lg font-semibold text-[var(--text-primary)] font-[family-name:var(--font-heading)]">
+          {APP_NAME}
+        </span>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 px-3 py-4 space-y-1">
+        {NAV_ITEMS.map((item) => {
+          const Icon = ICONS[item.icon];
+          const isActive = pathname.startsWith(item.href);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150',
+                isActive
+                  ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
+              )}
+            >
+              <Icon className="w-5 h-5" />
+              {item.label}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* User Profile */}
+      <div className="border-t border-[var(--border-default)] p-3 space-y-1">
+        <Link
+          href={ROUTES.profile}
+          className={cn(
+            'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150',
+            pathname.startsWith(ROUTES.profile)
+              ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
+          )}
+        >
+          {user?.avatar_url ? (
+            <img src={user.avatar_url} alt="" className="w-6 h-6 rounded-full" />
+          ) : (
+            <User className="w-5 h-5" />
+          )}
+          <span className="truncate">{user?.full_name || 'Profil'}</span>
+        </Link>
+        <button
+          onClick={signOut}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/10 transition-colors duration-150 w-full"
+        >
+          <LogOut className="w-5 h-5" />
+          Odhlásit se
+        </button>
+      </div>
+    </aside>
+  );
+}
