@@ -9,8 +9,8 @@ import { MyTasks } from '@/components/dashboard/MyTasks';
 import { UpcomingEvents } from '@/components/dashboard/UpcomingEvents';
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed';
 import { QuickActions } from '@/components/dashboard/QuickActions';
-import { LoadingPage } from '@/components/ui/LoadingSpinner';
-import { isWithinInterval, addDays } from '@/lib/utils/date';
+import { LoadingPage, LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { addDays } from '@/lib/utils/date';
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
@@ -18,19 +18,19 @@ export default function DashboardPage() {
   const { events, loading: eventsLoading } = useEvents();
   const { users, loading: usersLoading } = useUsers();
 
-  if (authLoading || tasksLoading || eventsLoading || usersLoading) {
+  if (authLoading) {
     return <LoadingPage />;
   }
 
   // My tasks (assigned to current user, not done)
-  const myTasks = tasks.filter(
+  const myTasks = tasksLoading ? [] : tasks.filter(
     (t) => t.assignee_id === user?.id && t.status !== 'done'
   );
 
   // Upcoming events (next 7 days)
   const now = new Date();
   const weekFromNow = addDays(now, 7);
-  const upcomingEvents = events.filter((e) => {
+  const upcomingEvents = eventsLoading ? [] : events.filter((e) => {
     const start = new Date(e.start_date);
     return start >= now && start <= weekFromNow;
   });
@@ -51,13 +51,25 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats */}
-      <StatsCards tasks={tasks} events={events} users={users} />
+      {tasksLoading || eventsLoading || usersLoading ? (
+        <div className="flex justify-center py-8"><LoadingSpinner /></div>
+      ) : (
+        <StatsCards tasks={tasks} events={events} users={users} />
+      )}
 
       {/* Main grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 space-y-4">
-          <MyTasks tasks={myTasks} />
-          <UpcomingEvents events={upcomingEvents} />
+          {tasksLoading ? (
+            <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-4 flex justify-center py-8"><LoadingSpinner /></div>
+          ) : (
+            <MyTasks tasks={myTasks} />
+          )}
+          {eventsLoading ? (
+            <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-4 flex justify-center py-8"><LoadingSpinner /></div>
+          ) : (
+            <UpcomingEvents events={upcomingEvents} />
+          )}
         </div>
         <div>
           <ActivityFeed />
