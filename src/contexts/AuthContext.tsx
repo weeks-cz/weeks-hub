@@ -31,26 +31,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let ignore = false;
 
     const fetchProfile = async (authUser: SupabaseUser) => {
-      const { data: profile } = await supabase
+      let { data: profile } = await supabase
         .from('users')
         .select('*')
         .eq('id', authUser.id)
         .single();
+
+      // Safety net: if profile doesn't exist (e.g. trigger failed for magic link user), create it
+      if (!profile && authUser.email) {
+        const { data: newProfile } = await supabase
+          .from('users')
+          .insert({
+            id: authUser.id,
+            email: authUser.email,
+            full_name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || '',
+            avatar_url: authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || '',
+          })
+          .select()
+          .single();
+        profile = newProfile;
+      }
+
       if (!ignore) {
         setUser(profile);
       }
     };
 
+    // Primary auth check — getUser() guarantees a server-validated result
+    supabase.auth.getUser().then(async ({ data: { user: authUser } }) => {
+      if (ignore) return;
+      setSupabaseUser(authUser);
+      if (authUser) {
+        await fetchProfile(authUser);
+      }
+      if (!ignore) setLoading(false);
+    });
+
+    // Listen for subsequent auth changes (sign out, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
         if (ignore) return;
+        // Skip INITIAL_SESSION — already handled by getUser() above
+        if (event === 'INITIAL_SESSION') return;
         setSupabaseUser(session?.user ?? null);
         if (session?.user) {
           await fetchProfile(session.user);
         } else {
           setUser(null);
         }
-        setLoading(false);
       }
     );
 
