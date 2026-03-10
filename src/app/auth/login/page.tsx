@@ -53,10 +53,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-primary)]">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-primary)] bg-gradient-to-br from-[var(--color-primary)]/5 via-transparent to-[var(--color-accent)]/5">
       <div className="w-full max-w-md px-6">
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[var(--color-primary)] mb-6">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-hover)] shadow-lg shadow-[var(--color-primary)]/20 mb-6">
             <span className="text-2xl font-bold text-white font-[family-name:var(--font-heading)]">W</span>
           </div>
           <h1 className="text-3xl font-bold text-[var(--text-primary)] font-[family-name:var(--font-heading)] mb-2">

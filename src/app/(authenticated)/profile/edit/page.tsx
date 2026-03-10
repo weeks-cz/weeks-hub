@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase/client';
 import { Input, Textarea } from '@/components/ui/Input';
@@ -52,9 +53,11 @@ export default function ProfileEditPage() {
 
     if (updateError) {
       setError('Nepodařilo se uložit profil');
+      toast.error('Nepodařilo se uložit profil');
       setIsSaving(false);
     } else {
       updateUser({ full_name: fullName.trim(), bio: bio.trim() || null });
+      toast.success('Profil uložen');
       router.push('/profile');
     }
   };

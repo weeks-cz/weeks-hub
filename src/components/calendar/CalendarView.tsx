@@ -10,7 +10,7 @@ import { EventDetailModal } from './EventDetailModal';
 import { useEvents } from '@/hooks/useEvents';
 import { useTasks } from '@/hooks/useTasks';
 import { addMonths, subMonths, formatMonthYear } from '@/lib/utils/date';
-import { LoadingPage } from '@/components/ui/LoadingSpinner';
+import { CalendarSkeleton } from '@/components/ui/Skeleton';
 import type { CalendarEvent } from '@/types/database';
 
 type ViewMode = 'month' | 'week';
@@ -40,23 +40,23 @@ export function CalendarView() {
     setCreateModalOpen(true);
   };
 
-  if (loading) return <LoadingPage />;
+  if (loading) return <CalendarSkeleton />;
 
   return (
     <div>
       {/* Toolbar */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" onClick={handlePrev}>
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          <h2 className="text-lg font-semibold text-[var(--text-primary)] font-[family-name:var(--font-heading)] min-w-[200px] text-center capitalize">
+          <h2 className="text-lg font-semibold text-[var(--text-primary)] font-[family-name:var(--font-heading)] min-w-[140px] sm:min-w-[200px] text-center capitalize">
             {formatMonthYear(currentDate)}
           </h2>
           <Button variant="ghost" size="sm" onClick={handleNext}>
             <ChevronRight className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="sm" onClick={handleToday}>
+          <Button variant="ghost" size="sm" onClick={handleToday} className="hidden sm:inline-flex">
             Dnes
           </Button>
         </div>
@@ -88,7 +88,7 @@ export function CalendarView() {
 
           <Button size="sm" onClick={() => { setSelectedDate(''); setCreateModalOpen(true); }}>
             <Plus className="w-4 h-4" />
-            Nová událost
+            <span className="hidden sm:inline">Nová událost</span>
           </Button>
         </div>
       </div>

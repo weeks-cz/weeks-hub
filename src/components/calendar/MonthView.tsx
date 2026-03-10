@@ -52,7 +52,7 @@ export function MonthView({ currentDate, events, taskDueDates, onEventClick, onD
               key={idx}
               onClick={() => onDayClick(day)}
               className={cn(
-                'min-h-[100px] p-1.5 border-r border-b border-[var(--border-default)] cursor-pointer hover:bg-[var(--bg-surface)] transition-colors',
+                'min-h-[80px] sm:min-h-[100px] p-1 sm:p-1.5 border-r border-b border-[var(--border-default)] cursor-pointer hover:bg-[var(--bg-surface)] transition-colors',
                 !isCurrentMonth && 'opacity-40'
               )}
             >

@@ -49,10 +49,10 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
             onClick={onClose}
           />
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            transition={{ duration: 0.2 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ type: 'spring', duration: 0.35, bounce: 0.15 }}
             className={cn(
               'relative w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl shadow-2xl max-h-[85vh] overflow-hidden flex flex-col',
               sizeClasses[size]

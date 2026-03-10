@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { LayoutDashboard, Kanban, Calendar, User, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,9 +20,9 @@ export function Sidebar() {
 
   return (
     <aside className="hidden lg:flex flex-col w-[260px] h-screen bg-[var(--bg-surface)] border-r border-[var(--border-default)] fixed left-0 top-0 z-30">
-      {/* Logo */}
-      <div className="flex items-center gap-3 px-6 h-16 border-b border-[var(--border-default)]">
-        <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)] flex items-center justify-center">
+      {/* Logo with gradient */}
+      <div className="flex items-center gap-3 px-6 h-16 border-b border-[var(--border-default)] bg-gradient-to-r from-[var(--color-primary)]/5 to-transparent">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-hover)] flex items-center justify-center shadow-lg shadow-[var(--color-primary)]/20">
           <span className="text-sm font-bold text-white font-[family-name:var(--font-heading)]">W</span>
         </div>
         <span className="text-lg font-semibold text-[var(--text-primary)] font-[family-name:var(--font-heading)]">
@@ -39,14 +40,21 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150',
+                'relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
                 isActive
-                  ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
+                  ? 'text-[var(--color-primary)]'
                   : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
               )}
             >
-              <Icon className="w-5 h-5" />
-              {item.label}
+              {isActive && (
+                <motion.div
+                  layoutId="sidebar-active"
+                  className="absolute inset-0 rounded-xl bg-[var(--color-primary)]/10"
+                  transition={{ type: 'spring', duration: 0.4, bounce: 0.15 }}
+                />
+              )}
+              <Icon className="w-5 h-5 relative z-10" />
+              <span className="relative z-10">{item.label}</span>
             </Link>
           );
         })}
@@ -57,7 +65,7 @@ export function Sidebar() {
         <Link
           href={ROUTES.profile}
           className={cn(
-            'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150',
+            'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
             pathname.startsWith(ROUTES.profile)
               ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
               : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
@@ -72,7 +80,7 @@ export function Sidebar() {
         </Link>
         <button
           onClick={signOut}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/10 transition-colors duration-150 w-full"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/10 transition-all duration-200 w-full"
         >
           <LogOut className="w-5 h-5" />
           Odhlásit se

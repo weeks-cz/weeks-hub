@@ -28,7 +28,7 @@ export function EventCard({ event, compact = false, onClick }: EventCardProps) {
   return (
     <button
       onClick={onClick}
-      className="w-full text-left p-3 rounded-xl border transition-all hover:shadow-md"
+      className="w-full text-left p-3 rounded-xl border transition-all duration-200 hover:shadow-lg hover:-translate-y-[1px]"
       style={{
         backgroundColor: `${color}10`,
         borderColor: `${color}30`,

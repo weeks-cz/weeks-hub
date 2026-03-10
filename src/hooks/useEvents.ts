@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import { createClient } from '@/lib/supabase/client';
 import type { CalendarEvent, EventType } from '@/types/database';
 
@@ -98,6 +99,11 @@ export function useEvents() {
     if (newEvent) {
       logActivity(userId, 'event_created', newEvent.id, { title: event.title, event_type: event.event_type });
       fetchEvents();
+      toast.success('Událost vytvořena');
+    }
+
+    if (error) {
+      toast.error('Nepodařilo se vytvořit událost');
     }
 
     return newEvent;
@@ -120,7 +126,12 @@ export function useEvents() {
       }
     }
 
-    if (!error) fetchEvents();
+    if (!error) {
+      fetchEvents();
+      toast.success('Událost aktualizována');
+    } else {
+      toast.error('Nepodařilo se aktualizovat událost');
+    }
 
     return !error;
   };
@@ -134,9 +145,11 @@ export function useEvents() {
 
     if (!error && userId) {
       logActivity(userId, 'event_deleted', eventId);
+      toast.success('Událost smazána');
     }
 
     if (error) {
+      toast.error('Nepodařilo se smazat událost');
       fetchEvents(); // Revert on failure
     }
 

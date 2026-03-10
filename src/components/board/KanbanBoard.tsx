@@ -9,7 +9,7 @@ import { useTasks } from '@/hooks/useTasks';
 import { TASK_COLUMNS, type Task, type TaskStatus, type TaskPriority } from '@/types/database';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
-import { LoadingPage } from '@/components/ui/LoadingSpinner';
+import { BoardSkeleton } from '@/components/ui/Skeleton';
 import { Plus, Filter } from 'lucide-react';
 import { useUsers } from '@/hooks/useUsers';
 
@@ -57,7 +57,7 @@ export function KanbanBoard() {
     setCreateModalOpen(true);
   };
 
-  if (loading) return <LoadingPage />;
+  if (loading) return <BoardSkeleton />;
 
   return (
     <div>
@@ -83,7 +83,7 @@ export function KanbanBoard() {
       {showFilters && (
         <div className="flex flex-wrap items-end gap-3 mb-4 p-3 bg-[var(--bg-surface)] rounded-xl border border-[var(--border-default)] animate-slide-down">
           <Select
-            label="Assignee"
+            label="Přiřazený"
             options={[
               { value: '', label: 'Všichni' },
               ...users.map((u) => ({ value: u.id, label: u.full_name })),
@@ -97,10 +97,10 @@ export function KanbanBoard() {
             label="Priorita"
             options={[
               { value: '', label: 'Všechny' },
-              { value: 'urgent', label: 'Urgent' },
-              { value: 'high', label: 'High' },
-              { value: 'medium', label: 'Medium' },
-              { value: 'low', label: 'Low' },
+              { value: 'urgent', label: 'Urgentní' },
+              { value: 'high', label: 'Vysoká' },
+              { value: 'medium', label: 'Střední' },
+              { value: 'low', label: 'Nízká' },
             ]}
             value={filters.priority || ''}
             onChange={(e) =>

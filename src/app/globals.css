@@ -18,8 +18,8 @@
   --text-muted: #64748B;
 
   /* Brand Colors */
-  --color-primary: #6366F1;
-  --color-primary-hover: #818CF8;
+  --color-primary: #3B82F6;
+  --color-primary-hover: #60A5FA;
   --color-accent: #06B6D4;
   --color-accent-hover: #22D3EE;
   --color-trust: #10B981;
@@ -41,7 +41,7 @@
 
   /* Event Colors */
   --event-camp: #10B981;
-  --event-meeting: #6366F1;
+  --event-meeting: #3B82F6;
   --event-reminder: #F59E0B;
   --event-deadline: #EF4444;
 
@@ -121,7 +121,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ===== Selection ===== */
 ::selection {
-  background: rgba(99, 102, 241, 0.3);
+  background: rgba(59, 130, 246, 0.3);
   color: var(--text-primary);
 }
 
@@ -156,4 +156,22 @@ h1, h2, h3, h4, h5, h6 {
 
 .animate-slide-down {
   animation: slideDown 0.3s ease-out;
+}
+
+/* Skeleton loading animation */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-surface-hover) 25%,
+    var(--border-default) 50%,
+    var(--bg-surface-hover) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 8px;
 }

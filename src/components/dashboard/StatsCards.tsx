@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import { CheckSquare, Calendar, Clock, Users } from 'lucide-react';
 import type { Task, CalendarEvent, User } from '@/types/database';
 import { isDueThisWeek } from '@/lib/utils/date';
@@ -24,7 +25,7 @@ export function StatsCards({ tasks, events, users }: StatsCardsProps) {
       color: 'var(--color-primary)',
     },
     {
-      label: 'Due this week',
+      label: 'Tento týden',
       value: dueThisWeek,
       icon: Clock,
       color: 'var(--color-cta)',
@@ -45,11 +46,14 @@ export function StatsCards({ tasks, events, users }: StatsCardsProps) {
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      {stats.map((stat) => {
+      {stats.map((stat, index) => {
         const Icon = stat.icon;
         return (
-          <div
+          <motion.div
             key={stat.label}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: index * 0.08 }}
             className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-4"
           >
             <div className="flex items-center gap-3">
@@ -66,7 +70,7 @@ export function StatsCards({ tasks, events, users }: StatsCardsProps) {
                 <p className="text-xs text-[var(--text-muted)]">{stat.label}</p>
               </div>
             </div>
-          </div>
+          </motion.div>
         );
       })}
     </div>

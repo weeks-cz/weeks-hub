@@ -7,6 +7,7 @@ import { Input, Textarea } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Avatar } from '@/components/ui/Avatar';
 import { DatePicker } from '@/components/ui/DatePicker';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { PrioritySelect } from '@/components/shared/PrioritySelect';
 import { UserSelect } from '@/components/shared/UserSelect';
 import { LabelSelect } from '@/components/shared/LabelSelect';
@@ -37,6 +38,7 @@ export function TaskDetailModal({
   onDeleteSubtask,
 }: TaskDetailModalProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<TaskPriority>('medium');
@@ -71,13 +73,13 @@ export function TaskDetailModal({
   };
 
   const handleDelete = async () => {
-    if (window.confirm('Opravdu smazat tento task?')) {
-      await onDelete(task.id);
-      onClose();
-    }
+    await onDelete(task.id);
+    setShowDeleteConfirm(false);
+    onClose();
   };
 
   return (
+    <>
     <Modal isOpen={isOpen} onClose={onClose} title={isEditing ? 'Upravit task' : task.title} size="lg">
       <div className="space-y-5">
         {isEditing ? (
@@ -96,7 +98,7 @@ export function TaskDetailModal({
             <PrioritySelect value={priority} onChange={setPriority} />
             <div className="grid grid-cols-2 gap-4">
               <DatePicker
-                label="Due date"
+                label="Termín"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
               />
@@ -104,7 +106,7 @@ export function TaskDetailModal({
             </div>
             <LabelSelect value={labelIds} onChange={setLabelIds} />
             <div className="flex justify-between pt-2">
-              <Button variant="danger" onClick={handleDelete} size="sm">
+              <Button variant="danger" onClick={() => setShowDeleteConfirm(true)} size="sm">
                 <Trash2 className="w-4 h-4" />
                 Smazat
               </Button>
@@ -132,7 +134,7 @@ export function TaskDetailModal({
               ))}
               {task.due_date && (
                 <span className="text-sm text-[var(--text-muted)]">
-                  Due: {formatDate(task.due_date)}
+                  Termín: {formatDate(task.due_date)}
                 </span>
               )}
             </div>
@@ -140,7 +142,7 @@ export function TaskDetailModal({
             {/* Assignee */}
             {task.assignee && (
               <div className="flex items-center gap-2">
-                <span className="text-sm text-[var(--text-muted)]">Assignee:</span>
+                <span className="text-sm text-[var(--text-muted)]">Přiřazený:</span>
                 <Avatar src={task.assignee.avatar_url} name={task.assignee.full_name} size="sm" />
                 <span className="text-sm text-[var(--text-primary)]">{task.assignee.full_name}</span>
               </div>
@@ -176,5 +178,16 @@ export function TaskDetailModal({
         )}
       </div>
     </Modal>
+
+    <ConfirmDialog
+      isOpen={showDeleteConfirm}
+      title="Smazat task"
+      message="Opravdu chceš smazat tento task? Tato akce je nevratná."
+      confirmLabel="Smazat"
+      variant="danger"
+      onConfirm={handleDelete}
+      onCancel={() => setShowDeleteConfirm(false)}
+    />
+    </>
   );
 }

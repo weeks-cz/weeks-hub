@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import { createClient } from '@/lib/supabase/client';
 import type { Task, TaskStatus, TaskPriority, Subtask } from '@/types/database';
 
@@ -136,6 +137,11 @@ export function useTasks(filters?: TaskFilters) {
     if (newTask) {
       logActivity(userId, 'task_created', newTask.id, { title: task.title });
       fetchTasks();
+      toast.success('Task vytvořen');
+    }
+
+    if (error) {
+      toast.error('Nepodařilo se vytvořit task');
     }
 
     return newTask;
@@ -165,6 +171,9 @@ export function useTasks(filters?: TaskFilters) {
         logActivity(userId, 'task_updated', taskId, { updates: Object.keys(cleanUpdates) });
       }
       fetchTasks();
+      toast.success('Task aktualizován');
+    } else {
+      toast.error('Nepodařilo se aktualizovat task');
     }
 
     return !error;
@@ -188,6 +197,8 @@ export function useTasks(filters?: TaskFilters) {
       if (userId) {
         logActivity(userId, 'task_moved', taskId, { new_status: newStatus });
       }
+    } else {
+      toast.error('Nepodařilo se přesunout task');
     }
 
     // Refetch to sync with server
@@ -205,9 +216,11 @@ export function useTasks(filters?: TaskFilters) {
 
     if (!error && userId) {
       logActivity(userId, 'task_deleted', taskId);
+      toast.success('Task smazán');
     }
 
     if (error) {
+      toast.error('Nepodařilo se smazat task');
       // Revert on failure
       fetchTasks();
     }

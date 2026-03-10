@@ -24,7 +24,8 @@ export function WeekView({ currentDate, events, onEventClick }: WeekViewProps) {
   };
 
   return (
-    <div className="grid grid-cols-7 gap-2">
+    <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+      <div className="grid grid-cols-7 gap-2 min-w-[700px] sm:min-w-0">
       {days.map((day, idx) => {
         const dayEvents = getEventsForDay(day);
         const isCurrent = isToday(day);
@@ -62,6 +63,7 @@ export function WeekView({ currentDate, events, onEventClick }: WeekViewProps) {
           </div>
         );
       })}
+      </div>
     </div>
   );
 }

@@ -9,7 +9,8 @@ import { MyTasks } from '@/components/dashboard/MyTasks';
 import { UpcomingEvents } from '@/components/dashboard/UpcomingEvents';
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed';
 import { QuickActions } from '@/components/dashboard/QuickActions';
-import { LoadingPage, LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { LoadingPage } from '@/components/ui/LoadingSpinner';
+import { StatsCardsSkeleton, TaskListSkeleton } from '@/components/ui/Skeleton';
 import { addDays } from '@/lib/utils/date';
 
 export default function DashboardPage() {
@@ -52,7 +53,7 @@ export default function DashboardPage() {
 
       {/* Stats */}
       {tasksLoading || eventsLoading || usersLoading ? (
-        <div className="flex justify-center py-8"><LoadingSpinner /></div>
+        <StatsCardsSkeleton />
       ) : (
         <StatsCards tasks={tasks} events={events} users={users} />
       )}
@@ -61,12 +62,12 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 space-y-4">
           {tasksLoading ? (
-            <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-4 flex justify-center py-8"><LoadingSpinner /></div>
+            <TaskListSkeleton />
           ) : (
             <MyTasks tasks={myTasks} />
           )}
           {eventsLoading ? (
-            <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-4 flex justify-center py-8"><LoadingSpinner /></div>
+            <TaskListSkeleton />
           ) : (
             <UpcomingEvents events={upcomingEvents} />
           )}

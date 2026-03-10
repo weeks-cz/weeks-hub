@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
@@ -16,6 +17,24 @@ export default function AuthenticatedLayout({
   return (
     <AuthProvider>
       <div className="min-h-screen bg-[var(--bg-primary)]">
+        <Toaster
+          position="bottom-right"
+          toastOptions={{
+            style: {
+              background: 'var(--bg-surface)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-default)',
+              borderRadius: '12px',
+              fontSize: '14px',
+            },
+            success: {
+              iconTheme: { primary: 'var(--color-success)', secondary: 'white' },
+            },
+            error: {
+              iconTheme: { primary: 'var(--color-error)', secondary: 'white' },
+            },
+          }}
+        />
         <Sidebar />
         <MobileNav isOpen={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
 
