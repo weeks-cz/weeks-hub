@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase/client';
@@ -10,12 +10,28 @@ import { Avatar } from '@/components/ui/Avatar';
 import { LoadingPage } from '@/components/ui/LoadingSpinner';
 
 export default function ProfileEditPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, updateUser } = useAuth();
   const router = useRouter();
   const [fullName, setFullName] = useState(user?.full_name || '');
   const [bio, setBio] = useState(user?.bio || '');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+
+  const hasChanges = useCallback(() => {
+    if (!user) return false;
+    return fullName !== (user.full_name || '') || bio !== (user.bio || '');
+  }, [fullName, bio, user]);
+
+  // Warn on browser close/refresh with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasChanges()) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasChanges]);
 
   if (loading) return <LoadingPage />;
   if (!user) return null;
@@ -36,11 +52,20 @@ export default function ProfileEditPage() {
 
     if (updateError) {
       setError('Nepodařilo se uložit profil');
+      setIsSaving(false);
     } else {
+      updateUser({ full_name: fullName.trim(), bio: bio.trim() || null });
       router.push('/profile');
-      router.refresh();
     }
-    setIsSaving(false);
+  };
+
+  const handleCancel = () => {
+    if (hasChanges()) {
+      if (!window.confirm('Máš neuložené změny. Opravdu chceš odejít?')) {
+        return;
+      }
+    }
+    router.back();
   };
 
   return (
@@ -77,7 +102,7 @@ export default function ProfileEditPage() {
           )}
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="ghost" onClick={() => router.back()}>
+            <Button type="button" variant="ghost" onClick={handleCancel}>
               Zrušit
             </Button>
             <Button type="submit" isLoading={isSaving}>

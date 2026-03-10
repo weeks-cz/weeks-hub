@@ -10,6 +10,7 @@ interface AuthContextValue {
   supabaseUser: SupabaseUser | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  updateUser: (updates: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextValue>({
@@ -17,6 +18,7 @@ const AuthContext = createContext<AuthContextValue>({
   supabaseUser: null,
   loading: true,
   signOut: async () => {},
+  updateUser: () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -65,8 +67,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.href = '/auth/login';
   };
 
+  const updateUser = (updates: Partial<User>) => {
+    setUser((prev) => prev ? { ...prev, ...updates } : prev);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, supabaseUser, loading, signOut }}>
+    <AuthContext.Provider value={{ user, supabaseUser, loading, signOut, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
