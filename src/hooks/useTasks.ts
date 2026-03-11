@@ -17,42 +17,47 @@ export function useTasks(filters?: TaskFilters) {
   const supabase = createClient();
 
   const fetchTasks = useCallback(async () => {
-    let query = supabase
-      .from('tasks')
-      .select(`
-        *,
-        assignee:users!tasks_assignee_id_fkey(*),
-        creator:users!tasks_created_by_fkey(*),
-        subtasks(*),
-        task_labels(label_id, labels(*))
-      `)
-      .order('position', { ascending: true });
+    try {
+      let query = supabase
+        .from('tasks')
+        .select(`
+          *,
+          assignee:users!tasks_assignee_id_fkey(*),
+          creator:users!tasks_created_by_fkey(*),
+          subtasks(*),
+          task_labels(label_id, labels(*))
+        `)
+        .order('position', { ascending: true });
 
-    if (filters?.assigneeId) {
-      query = query.eq('assignee_id', filters.assigneeId);
-    }
-    if (filters?.priority) {
-      query = query.eq('priority', filters.priority);
-    }
-
-    const { data, error } = await query;
-
-    if (!error && data) {
-      const tasksWithLabels = data.map((task: Record<string, unknown>) => ({
-        ...task,
-        labels: (task.task_labels as Array<{ labels: unknown }>)?.map((tl) => tl.labels).filter(Boolean) || [],
-      }));
-
-      let filtered = tasksWithLabels as Task[];
-      if (filters?.labelId) {
-        filtered = filtered.filter((t) =>
-          t.labels?.some((l) => l.id === filters.labelId)
-        );
+      if (filters?.assigneeId) {
+        query = query.eq('assignee_id', filters.assigneeId);
+      }
+      if (filters?.priority) {
+        query = query.eq('priority', filters.priority);
       }
 
-      setTasks(filtered);
+      const { data, error } = await query;
+
+      if (!error && data) {
+        const tasksWithLabels = data.map((task: Record<string, unknown>) => ({
+          ...task,
+          labels: (task.task_labels as Array<{ labels: unknown }>)?.map((tl) => tl.labels).filter(Boolean) || [],
+        }));
+
+        let filtered = tasksWithLabels as Task[];
+        if (filters?.labelId) {
+          filtered = filtered.filter((t) =>
+            t.labels?.some((l) => l.id === filters.labelId)
+          );
+        }
+
+        setTasks(filtered);
+      }
+    } catch {
+      // Silently handle network errors
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [filters?.assigneeId, filters?.priority, filters?.labelId]);
 
   useEffect(() => {

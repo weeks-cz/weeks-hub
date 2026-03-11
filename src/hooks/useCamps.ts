@@ -11,19 +11,45 @@ export function useCamps() {
   const supabase = createClient();
 
   const fetchCamps = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('camps')
-      .select('*, creator:users!camps_created_by_fkey(*)')
-      .order('start_date', { ascending: true });
+    try {
+      const { data, error } = await supabase
+        .from('camps')
+        .select('*, creator:users!camps_created_by_fkey(*)')
+        .order('start_date', { ascending: true });
 
-    if (!error && data) {
-      setCamps(data as Camp[]);
+      if (!error && data) {
+        setCamps(data as Camp[]);
+      }
+    } catch {
+      // Silently handle network errors
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
+
+  // Auto-sync from weeks.cz: on mount and every 15 minutes
+  const autoSync = useCallback(async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      await fetch('/api/sync-camps', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      // Refetch after sync completes
+      fetchCamps();
+    } catch {
+      // Silent - auto-sync should never interrupt the user
+    }
+  }, [fetchCamps]);
 
   useEffect(() => {
     fetchCamps();
+    // Auto-sync on first load (slight delay to not block initial render)
+    const initialSync = setTimeout(autoSync, 3000);
+    // Then every 15 minutes
+    const interval = setInterval(autoSync, 15 * 60 * 1000);
 
     const channel = supabase
       .channel('camps-changes')
@@ -33,9 +59,11 @@ export function useCamps() {
       .subscribe();
 
     return () => {
+      clearTimeout(initialSync);
+      clearInterval(interval);
       supabase.removeChannel(channel);
     };
-  }, [fetchCamps]);
+  }, [fetchCamps, autoSync]);
 
   const getUserId = async () => {
     const { data: { session } } = await supabase.auth.getSession();

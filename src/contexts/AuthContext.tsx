@@ -58,7 +58,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     // Primary auth check — getUser() guarantees a server-validated result
-    supabase.auth.getUser().then(async ({ data: { user: authUser } }) => {
+    // Add timeout to prevent infinite loading if network is slow
+    const authPromise = supabase.auth.getUser().then(async ({ data: { user: authUser } }) => {
       if (ignore) return;
       setSupabaseUser(authUser);
       if (authUser) {
@@ -66,6 +67,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       if (!ignore) setLoading(false);
     });
+
+    // Fallback: if getUser() takes more than 5s, try getSession() (local, no network)
+    const timeout = setTimeout(async () => {
+      if (ignore) return;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (ignore) return;
+      if (session?.user) {
+        setSupabaseUser(session.user);
+        await fetchProfile(session.user);
+      }
+      setLoading(false);
+    }, 5000);
+
+    authPromise.finally(() => clearTimeout(timeout));
 
     // Listen for subsequent auth changes (sign out, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(

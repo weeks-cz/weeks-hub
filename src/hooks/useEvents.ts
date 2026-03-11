@@ -11,23 +11,28 @@ export function useEvents() {
   const supabase = createClient();
 
   const fetchEvents = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('calendar_events')
-      .select(`
-        *,
-        creator:users!calendar_events_created_by_fkey(*),
-        event_attendees(user_id, users(*))
-      `)
-      .order('start_date', { ascending: true });
+    try {
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .select(`
+          *,
+          creator:users!calendar_events_created_by_fkey(*),
+          event_attendees(user_id, users(*))
+        `)
+        .order('start_date', { ascending: true });
 
-    if (!error && data) {
-      const eventsWithAttendees = data.map((event: Record<string, unknown>) => ({
-        ...event,
-        attendees: (event.event_attendees as Array<{ users: unknown }>)?.map((ea) => ea.users).filter(Boolean) || [],
-      }));
-      setEvents(eventsWithAttendees as CalendarEvent[]);
+      if (!error && data) {
+        const eventsWithAttendees = data.map((event: Record<string, unknown>) => ({
+          ...event,
+          attendees: (event.event_attendees as Array<{ users: unknown }>)?.map((ea) => ea.users).filter(Boolean) || [],
+        }));
+        setEvents(eventsWithAttendees as CalendarEvent[]);
+      }
+    } catch {
+      // Silently handle network errors
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => {
