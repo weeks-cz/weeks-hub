@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { MonthView } from './MonthView';
@@ -9,9 +10,10 @@ import { CreateEventModal } from './CreateEventModal';
 import { EventDetailModal } from './EventDetailModal';
 import { useEvents } from '@/hooks/useEvents';
 import { useTasks } from '@/hooks/useTasks';
+import { useCamps } from '@/hooks/useCamps';
 import { addMonths, subMonths, formatMonthYear } from '@/lib/utils/date';
 import { CalendarSkeleton } from '@/components/ui/Skeleton';
-import type { CalendarEvent } from '@/types/database';
+import { CAMP_STATUS_CONFIG, type CalendarEvent } from '@/types/database';
 
 type ViewMode = 'month' | 'week';
 
@@ -21,9 +23,30 @@ export function CalendarView() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const router = useRouter();
 
   const { events, loading, createEvent, updateEvent, deleteEvent } = useEvents();
   const { tasks } = useTasks();
+  const { camps } = useCamps();
+
+  // Convert camps to CalendarEvent-like objects for calendar display
+  const campEvents = useMemo<CalendarEvent[]>(() => {
+    return camps.map((camp) => ({
+      id: `camp-${camp.id}`,
+      title: `${camp.title} (${camp.enrolled_count}/${camp.capacity})`,
+      description: camp.description,
+      event_type: 'camp' as const,
+      start_date: `${camp.start_date}T12:00:00`,
+      end_date: `${camp.end_date}T12:00:00`,
+      all_day: true,
+      color: CAMP_STATUS_CONFIG[camp.status]?.color || camp.color,
+      created_by: camp.created_by,
+      created_at: camp.created_at,
+      updated_at: camp.updated_at,
+    }));
+  }, [camps]);
+
+  const allEvents = useMemo(() => [...events, ...campEvents], [events, campEvents]);
 
   // Wrap updateEvent to refresh selectedEvent from fresh data
   const handleUpdateEvent = useCallback(async (eventId: string, updates: Partial<CalendarEvent>) => {
@@ -37,6 +60,14 @@ export function CalendarView() {
     }
     return result;
   }, [updateEvent]);
+
+  const handleEventClick = useCallback((event: CalendarEvent) => {
+    if (event.id.startsWith('camp-')) {
+      router.push('/camps');
+    } else {
+      setSelectedEvent(event);
+    }
+  }, [router]);
 
   // Get task due dates for calendar
   const taskDueDates = tasks
@@ -110,16 +141,16 @@ export function CalendarView() {
       {viewMode === 'month' ? (
         <MonthView
           currentDate={currentDate}
-          events={events}
+          events={allEvents}
           taskDueDates={taskDueDates}
-          onEventClick={setSelectedEvent}
+          onEventClick={handleEventClick}
           onDayClick={handleDayClick}
         />
       ) : (
         <WeekView
           currentDate={currentDate}
-          events={events}
-          onEventClick={setSelectedEvent}
+          events={allEvents}
+          onEventClick={handleEventClick}
         />
       )}
 
