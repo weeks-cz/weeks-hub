@@ -111,14 +111,21 @@ export function useEvents() {
 
   const updateEvent = async (eventId: string, updates: Partial<CalendarEvent> & { attendeeIds?: string[] }) => {
     const userId = await getUserId();
-    const { attendeeIds, creator, attendees, ...cleanUpdates } = updates as CalendarEvent & { attendeeIds?: string[] };
+    // Strip joined/non-column fields before sending to Supabase
+    const { attendeeIds, creator, attendees, id, created_at, updated_at, ...dbUpdates } = updates as CalendarEvent & { attendeeIds?: string[] };
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('calendar_events')
-      .update(cleanUpdates)
-      .eq('id', eventId);
+      .update(dbUpdates)
+      .eq('id', eventId)
+      .select();
 
-    if (!error && attendeeIds !== undefined) {
+    if (error || !data || data.length === 0) {
+      toast.error('Nepodařilo se aktualizovat událost');
+      return false;
+    }
+
+    if (attendeeIds !== undefined) {
       await supabase.from('event_attendees').delete().eq('event_id', eventId);
       if (attendeeIds.length > 0) {
         await supabase.from('event_attendees').insert(
@@ -127,15 +134,10 @@ export function useEvents() {
       }
     }
 
-    if (!error) {
-      if (userId) logActivity(userId, 'event_updated', eventId, { title: cleanUpdates.title });
-      await fetchEvents();
-      toast.success('Událost aktualizována');
-    } else {
-      toast.error('Nepodařilo se aktualizovat událost');
-    }
-
-    return !error;
+    if (userId) logActivity(userId, 'event_updated', eventId, { title: dbUpdates.title });
+    await fetchEvents();
+    toast.success('Událost aktualizována');
+    return true;
   };
 
   const deleteEvent = async (eventId: string) => {
@@ -143,19 +145,21 @@ export function useEvents() {
     setEvents((prev) => prev.filter((e) => e.id !== eventId));
 
     const userId = await getUserId();
-    const { error } = await supabase.from('calendar_events').delete().eq('id', eventId);
+    const { data, error } = await supabase
+      .from('calendar_events')
+      .delete()
+      .eq('id', eventId)
+      .select();
 
-    if (!error && userId) {
-      logActivity(userId, 'event_deleted', eventId);
-      toast.success('Událost smazána');
-    }
-
-    if (error) {
+    if (error || !data || data.length === 0) {
       toast.error('Nepodařilo se smazat událost');
       fetchEvents(); // Revert on failure
+      return false;
     }
 
-    return !error;
+    if (userId) logActivity(userId, 'event_deleted', eventId);
+    toast.success('Událost smazána');
+    return true;
   };
 
   const getEventsForDate = (date: Date) => {
