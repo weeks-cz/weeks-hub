@@ -46,7 +46,9 @@ export default function CampsPage() {
 
       const data = await res.json();
       if (data.success) {
-        toast.success(`Sync hotov: ${data.created} novych, ${data.updated} aktualizovanych`);
+        const parts = [`${data.created} novych`, `${data.updated} aktualizovanych`];
+        if (data.remindersCreated > 0) parts.push(`${data.remindersCreated} upominek`);
+        toast.success(`Sync hotov: ${parts.join(', ')}`);
         refetch();
       } else {
         toast.error(data.error || 'Sync selhal');

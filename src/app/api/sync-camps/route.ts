@@ -75,9 +75,23 @@ export async function POST(request: Request) {
       ])
     );
 
+    // Get existing reminder events to avoid duplicates
+    const { data: existingReminders } = await supabase
+      .from('calendar_events')
+      .select('id, description')
+      .eq('event_type', 'reminder')
+      .like('description', 'camp-reminder:%');
+
+    const existingReminderCampIds = new Set(
+      (existingReminders || [])
+        .map((r: { description: string }) => r.description?.replace('camp-reminder:', ''))
+        .filter(Boolean)
+    );
+
     let created = 0;
     let updated = 0;
     let skipped = 0;
+    let remindersCreated = 0;
 
     for (const webCamp of webCamps) {
       const enrolledCount = webCamp.enrolledCount ?? 0;
@@ -132,6 +146,32 @@ export async function POST(request: Request) {
         if (!error) created++;
         else skipped++;
       }
+
+      // Create reminder event 14 days before camp for "collecting_interest" camps
+      if (webCamp.status === 'collecting_interest' && !existingReminderCampIds.has(webCamp.id)) {
+        const campStart = new Date(webCamp.startDate);
+        const reminderDate = new Date(campStart);
+        reminderDate.setDate(reminderDate.getDate() - 14);
+
+        // Only create if reminder date is in the future
+        if (reminderDate > new Date()) {
+          const reminderDateStr = reminderDate.toISOString().split('T')[0];
+          const { error: reminderError } = await supabase
+            .from('calendar_events')
+            .insert({
+              title: `Upomenout rodice: ${webCamp.title} (${webCamp.startDate})`,
+              description: `camp-reminder:${webCamp.id}`,
+              event_type: 'reminder',
+              start_date: `${reminderDateStr}T09:00:00`,
+              end_date: `${reminderDateStr}T09:00:00`,
+              all_day: true,
+              color: '#F59E0B',
+              created_by: user.id,
+            });
+
+          if (!reminderError) remindersCreated++;
+        }
+      }
     }
 
     return NextResponse.json({
@@ -139,6 +179,7 @@ export async function POST(request: Request) {
       created,
       updated,
       skipped,
+      remindersCreated,
       total: webCamps.length,
     });
   } catch (error) {
