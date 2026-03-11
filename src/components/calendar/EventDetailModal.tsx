@@ -71,8 +71,8 @@ export function EventDetailModal({ event, isOpen, onClose, onUpdate, onDelete }:
     let end_date: string | null;
 
     if (allDay) {
-      start_date = `${startDate}T00:00:00`;
-      end_date = endDate ? `${endDate}T23:59:59` : null;
+      start_date = `${startDate}T12:00:00`;
+      end_date = endDate ? `${endDate}T12:00:00` : null;
     } else {
       start_date = `${startDate}T${startTime}:00`;
       end_date = endDate ? `${endDate}T${endTime}:00` : null;

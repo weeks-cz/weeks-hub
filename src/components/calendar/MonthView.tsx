@@ -17,10 +17,11 @@ export function MonthView({ currentDate, events, taskDueDates, onEventClick, onD
   const days = getDaysInMonthGrid(currentDate);
 
   const getEventsForDay = (day: Date) => {
+    const dayStr = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
     return events.filter((event) => {
-      const start = new Date(event.start_date);
-      const end = event.end_date ? new Date(event.end_date) : start;
-      return day >= new Date(start.toDateString()) && day <= new Date(end.toDateString());
+      const startStr = event.start_date.slice(0, 10);
+      const endStr = event.end_date ? event.end_date.slice(0, 10) : startStr;
+      return dayStr >= startStr && dayStr <= endStr;
     });
   };
 

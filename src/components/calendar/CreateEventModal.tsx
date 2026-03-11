@@ -38,9 +38,9 @@ export function CreateEventModal({ isOpen, onClose, onSubmit, defaultDate }: Cre
 
     setIsSubmitting(true);
 
-    const start = allDay ? `${startDate}T00:00:00` : `${startDate}T${startTime}:00`;
+    const start = allDay ? `${startDate}T12:00:00` : `${startDate}T${startTime}:00`;
     const end = endDate
-      ? allDay ? `${endDate}T23:59:59` : `${endDate}T${endTime}:00`
+      ? allDay ? `${endDate}T12:00:00` : `${endDate}T${endTime}:00`
       : null;
 
     await onSubmit({

@@ -2,12 +2,14 @@ export type UserRole = 'admin' | 'member';
 export type TaskStatus = 'backlog' | 'todo' | 'in_progress' | 'review' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 export type EventType = 'camp' | 'meeting' | 'reminder' | 'deadline';
+export type CampStatus = 'collecting_interest' | 'open_no_link' | 'open_with_link' | 'full' | 'closed';
 export type ActionType =
   | 'task_created' | 'task_updated' | 'task_moved' | 'task_deleted'
   | 'subtask_created' | 'subtask_completed' | 'subtask_deleted'
   | 'event_created' | 'event_updated' | 'event_deleted'
+  | 'camp_created' | 'camp_updated' | 'camp_deleted' | 'camp_enrollment_changed'
   | 'user_updated';
-export type EntityType = 'task' | 'subtask' | 'event' | 'user';
+export type EntityType = 'task' | 'subtask' | 'event' | 'camp' | 'user';
 
 export interface User {
   id: string;
@@ -82,6 +84,25 @@ export interface EventAttendee {
   user_id: string;
 }
 
+export interface Camp {
+  id: string;
+  title: string;
+  description: string | null;
+  start_date: string;
+  end_date: string;
+  location: string | null;
+  capacity: number;
+  enrolled_count: number;
+  status: CampStatus;
+  registration_url: string | null;
+  color: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  // Joined
+  creator?: User;
+}
+
 export interface ActivityLog {
   id: string;
   user_id: string;
@@ -125,3 +146,11 @@ export const DEFAULT_LABELS = [
   { name: 'Camp Prep', color: '#10B981' },
   { name: 'Marketing', color: '#06B6D4' },
 ];
+
+export const CAMP_STATUS_CONFIG: Record<CampStatus, { label: string; color: string; icon: string }> = {
+  collecting_interest: { label: 'Sbíráme zájem', color: '#F59E0B', icon: 'Search' },
+  open_no_link: { label: 'Otevřeno', color: '#3B82F6', icon: 'DoorOpen' },
+  open_with_link: { label: 'Registrace otevřena', color: '#10B981', icon: 'ExternalLink' },
+  full: { label: 'Plný', color: '#EF4444', icon: 'UserX' },
+  closed: { label: 'Uzavřeno', color: '#64748B', icon: 'Lock' },
+};

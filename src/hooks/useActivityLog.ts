@@ -61,6 +61,14 @@ export function getActivityMessage(activity: ActivityLog): string {
       return `přidal/a subtask`;
     case 'subtask_completed':
       return `dokončil/a subtask`;
+    case 'camp_created':
+      return `vytvořil/a tábor "${meta.title}"`;
+    case 'camp_updated':
+      return `upravil/a tábor`;
+    case 'camp_deleted':
+      return `smazal/a tábor`;
+    case 'camp_enrollment_changed':
+      return `změnil/a přihlášení u "${meta.title}" (${(meta.delta as number) > 0 ? '+' : ''}${meta.delta} → ${meta.new_count})`;
     default:
       return activity.action_type;
   }

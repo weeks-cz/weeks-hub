@@ -11,6 +11,7 @@ export const ROUTES = {
   dashboard: '/dashboard',
   board: '/board',
   calendar: '/calendar',
+  camps: '/camps',
   profile: '/profile',
   profileEdit: '/profile/edit',
 } as const;
@@ -19,4 +20,5 @@ export const NAV_ITEMS = [
   { label: 'Dashboard', href: ROUTES.dashboard, icon: 'LayoutDashboard' as const },
   { label: 'Board', href: ROUTES.board, icon: 'Kanban' as const },
   { label: 'Kalendář', href: ROUTES.calendar, icon: 'Calendar' as const },
+  { label: 'Tábory', href: ROUTES.camps, icon: 'Tent' as const },
 ] as const;

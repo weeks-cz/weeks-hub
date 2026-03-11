@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Kanban, Calendar, User, X, LogOut } from 'lucide-react';
+import { LayoutDashboard, Kanban, Calendar, Tent, User, X, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useAuth } from '@/contexts/AuthContext';
 import { NAV_ITEMS, ROUTES, APP_NAME } from '@/lib/utils/constants';
@@ -11,6 +11,7 @@ const ICONS = {
   LayoutDashboard,
   Kanban,
   Calendar,
+  Tent,
 } as const;
 
 interface MobileNavProps {

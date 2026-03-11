@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { MonthView } from './MonthView';
@@ -24,6 +24,19 @@ export function CalendarView() {
 
   const { events, loading, createEvent, updateEvent, deleteEvent } = useEvents();
   const { tasks } = useTasks();
+
+  // Wrap updateEvent to refresh selectedEvent from fresh data
+  const handleUpdateEvent = useCallback(async (eventId: string, updates: Partial<CalendarEvent>) => {
+    const result = await updateEvent(eventId, updates);
+    // After update, refresh selectedEvent from the latest events
+    if (result) {
+      setSelectedEvent((prev) => {
+        if (!prev || prev.id !== eventId) return prev;
+        return { ...prev, ...updates };
+      });
+    }
+    return result;
+  }, [updateEvent]);
 
   // Get task due dates for calendar
   const taskDueDates = tasks
@@ -122,7 +135,7 @@ export function CalendarView() {
         event={selectedEvent}
         isOpen={!!selectedEvent}
         onClose={() => setSelectedEvent(null)}
-        onUpdate={updateEvent}
+        onUpdate={handleUpdateEvent}
         onDelete={deleteEvent}
       />
     </div>

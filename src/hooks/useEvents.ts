@@ -110,6 +110,7 @@ export function useEvents() {
   };
 
   const updateEvent = async (eventId: string, updates: Partial<CalendarEvent> & { attendeeIds?: string[] }) => {
+    const userId = await getUserId();
     const { attendeeIds, creator, attendees, ...cleanUpdates } = updates as CalendarEvent & { attendeeIds?: string[] };
 
     const { error } = await supabase
@@ -127,7 +128,8 @@ export function useEvents() {
     }
 
     if (!error) {
-      fetchEvents();
+      if (userId) logActivity(userId, 'event_updated', eventId, { title: cleanUpdates.title });
+      await fetchEvents();
       toast.success('Událost aktualizována');
     } else {
       toast.error('Nepodařilo se aktualizovat událost');
@@ -157,14 +159,11 @@ export function useEvents() {
   };
 
   const getEventsForDate = (date: Date) => {
+    const dayStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     return events.filter((event) => {
-      const start = new Date(event.start_date);
-      const end = event.end_date ? new Date(event.end_date) : start;
-      const d = new Date(date);
-      d.setHours(0, 0, 0, 0);
-      const dayEnd = new Date(d);
-      dayEnd.setHours(23, 59, 59, 999);
-      return start <= dayEnd && end >= d;
+      const startStr = event.start_date.slice(0, 10);
+      const endStr = event.end_date ? event.end_date.slice(0, 10) : startStr;
+      return dayStr >= startStr && dayStr <= endStr;
     });
   };
 

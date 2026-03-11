@@ -4,9 +4,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTasks } from '@/hooks/useTasks';
 import { useEvents } from '@/hooks/useEvents';
 import { useUsers } from '@/hooks/useUsers';
+import { useCamps } from '@/hooks/useCamps';
 import { StatsCards } from '@/components/dashboard/StatsCards';
 import { MyTasks } from '@/components/dashboard/MyTasks';
 import { UpcomingEvents } from '@/components/dashboard/UpcomingEvents';
+import { CampsOverview } from '@/components/dashboard/CampsOverview';
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { LoadingPage } from '@/components/ui/LoadingSpinner';
@@ -18,6 +20,7 @@ export default function DashboardPage() {
   const { tasks, loading: tasksLoading } = useTasks();
   const { events, loading: eventsLoading } = useEvents();
   const { users, loading: usersLoading } = useUsers();
+  const { camps, loading: campsLoading } = useCamps();
 
   if (authLoading) {
     return <LoadingPage />;
@@ -72,7 +75,12 @@ export default function DashboardPage() {
             <UpcomingEvents events={upcomingEvents} />
           )}
         </div>
-        <div>
+        <div className="space-y-4">
+          {campsLoading ? (
+            <TaskListSkeleton />
+          ) : (
+            <CampsOverview camps={camps} />
+          )}
           <ActivityFeed />
         </div>
       </div>
