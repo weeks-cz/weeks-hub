@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Tent } from 'lucide-react';
+import { Plus, Tent, RefreshCw } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { CampCard } from '@/components/camps/CampCard';
@@ -21,10 +23,40 @@ const STATUS_FILTERS: { value: 'all' | CampStatus; label: string }[] = [
 ];
 
 export default function CampsPage() {
-  const { camps, loading, createCamp, updateCamp, deleteCamp, updateEnrollment } = useCamps();
+  const { camps, loading, createCamp, updateCamp, deleteCamp, updateEnrollment, refetch } = useCamps();
   const [showCreate, setShowCreate] = useState(false);
   const [selectedCamp, setSelectedCamp] = useState<Camp | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | CampStatus>('all');
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const syncFromWeb = async () => {
+    setIsSyncing(true);
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Nejsi prihlaseny');
+        return;
+      }
+
+      const res = await fetch('/api/sync-camps', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`Sync hotov: ${data.created} novych, ${data.updated} aktualizovanych`);
+        refetch();
+      } else {
+        toast.error(data.error || 'Sync selhal');
+      }
+    } catch {
+      toast.error('Chyba pri synchronizaci');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const filteredCamps = statusFilter === 'all'
     ? camps
@@ -52,10 +84,16 @@ export default function CampsPage() {
             Prehled vsech taboru a jejich obsazenosti
           </p>
         </div>
-        <Button onClick={() => setShowCreate(true)}>
-          <Plus className="w-4 h-4" />
-          Novy tabor
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={syncFromWeb} isLoading={isSyncing}>
+            <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+            Sync z webu
+          </Button>
+          <Button onClick={() => setShowCreate(true)}>
+            <Plus className="w-4 h-4" />
+            Novy tabor
+          </Button>
+        </div>
       </div>
 
       {/* Status filter */}

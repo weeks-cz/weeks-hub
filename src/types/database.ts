@@ -96,6 +96,7 @@ export interface Camp {
   status: CampStatus;
   registration_url: string | null;
   color: string | null;
+  web_source_id: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
