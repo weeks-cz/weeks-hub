@@ -24,7 +24,7 @@ export function SubmissionsOverview({ submissions, newCount }: SubmissionsOvervi
           </h3>
           {newCount > 0 && (
             <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-[#F59E0B]/20 text-[#F59E0B]">
-              {newCount} nový{newCount > 1 && newCount < 5 ? 'é' : newCount >= 5 ? 'ch' : ''}
+              {newCount} {newCount === 1 ? 'nový' : newCount >= 2 && newCount <= 4 ? 'nové' : 'nových'}
             </span>
           )}
         </div>

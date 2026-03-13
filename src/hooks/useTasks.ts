@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { createClient } from '@/lib/supabase/client';
 import type { Task, TaskStatus, TaskPriority, Subtask } from '@/types/database';
@@ -15,6 +15,8 @@ export function useTasks(filters?: TaskFilters) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
+  // Suppress realtime refetch briefly after optimistic updates
+  const suppressRealtimeUntil = useRef(0);
 
   const fetchTasks = useCallback(async () => {
     try {
@@ -63,15 +65,17 @@ export function useTasks(filters?: TaskFilters) {
   useEffect(() => {
     fetchTasks();
 
-    // Realtime subscription for cross-user updates
+    // Realtime subscription for cross-user updates.
+    // Respects suppressRealtimeUntil to prevent overwriting optimistic updates.
+    const realtimeFetch = () => {
+      if (Date.now() < suppressRealtimeUntil.current) return;
+      fetchTasks();
+    };
+
     const channel = supabase
       .channel('tasks-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
-        fetchTasks();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'subtasks' }, () => {
-        fetchTasks();
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, realtimeFetch)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'subtasks' }, realtimeFetch)
       .subscribe();
 
     return () => {
@@ -192,6 +196,10 @@ export function useTasks(filters?: TaskFilters) {
       )
     );
 
+    // Suppress realtime refetch for 2s so the optimistic update isn't overwritten
+    // by a stale fetch triggered by the realtime subscription.
+    suppressRealtimeUntil.current = Date.now() + 2000;
+
     const { error } = await supabase
       .from('tasks')
       .update({ status: newStatus, position: newPosition })
@@ -202,12 +210,13 @@ export function useTasks(filters?: TaskFilters) {
       if (userId) {
         logActivity(userId, 'task_moved', taskId, { new_status: newStatus });
       }
+      // Refetch after server confirmed the write (not before)
+      fetchTasks();
     } else {
       toast.error('Nepodařilo se přesunout task');
+      // Revert on failure
+      fetchTasks();
     }
-
-    // Refetch to sync with server
-    fetchTasks();
 
     return !error;
   };
