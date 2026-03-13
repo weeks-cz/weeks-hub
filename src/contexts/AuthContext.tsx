@@ -29,15 +29,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let ignore = false;
-    let loadingResolved = false;
-
-    // Guarantees loading becomes false — can be called multiple times safely
-    const resolveLoading = () => {
-      if (!loadingResolved && !ignore) {
-        loadingResolved = true;
-        setLoading(false);
-      }
-    };
 
     const fetchProfile = async (authUser: SupabaseUser) => {
       try {
@@ -70,70 +61,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    // Primary: getUser() validates the session server-side.
-    // We race it against a timeout so a slow token refresh can't block the UI.
-    const init = async () => {
-      let authUser: SupabaseUser | null = null;
-
-      try {
-        const { data } = await Promise.race([
-          supabase.auth.getUser(),
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('auth_timeout')), 3000)
-          ),
-        ]);
-        authUser = data.user;
-      } catch {
-        // getUser() timed out or failed — not fatal, we continue
-      }
-
-      if (ignore) return;
-      setSupabaseUser(authUser);
-
-      if (authUser) {
-        // Try to fetch profile quickly (with its own timeout)
-        try {
-          await Promise.race([
-            fetchProfile(authUser),
-            new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error('profile_timeout')), 2000)
-            ),
-          ]);
-        } catch {
-          // Profile timed out — it will load in background via onAuthStateChange
-        }
-      }
-
-      resolveLoading();
-    };
-
-    init();
-
-    // Hard timeout: absolute guarantee against infinite loading.
-    // Even if init() somehow hangs, this fires independently.
-    const hardTimeout = setTimeout(resolveLoading, 5000);
-
-    // Listen for ALL auth state changes including initial session.
-    // This catches cases where getUser() timed out but auth resolves later
-    // (e.g. after a slow token refresh completes).
+    // onAuthStateChange is the SOLE mechanism for resolving auth state.
+    //
+    // Why NOT getUser() or getSession():
+    //   Both go through the Supabase client's internal token refresh lock.
+    //   If the access token is expired, the client starts a refresh.
+    //   ALL calls through the client (getUser, getSession, queries) are
+    //   serialized behind this lock. Racing with a timeout just creates
+    //   a broken state where loading resolves but data isn't available.
+    //
+    // onAuthStateChange fires INITIAL_SESSION after the lock resolves,
+    // guaranteeing we get a valid session (or null if truly expired).
+    // We wait for this event — the loading spinner shows in the meantime.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (ignore) return;
 
-        setSupabaseUser(session?.user ?? null);
-        resolveLoading();
+        const authUser = session?.user ?? null;
+        setSupabaseUser(authUser);
 
-        if (session?.user) {
-          await fetchProfile(session.user);
+        if (authUser) {
+          // Fetch profile BEFORE resolving loading so the UI never
+          // flashes with "Ahoj, tam" (null user).
+          await fetchProfile(authUser);
         } else {
           setUser(null);
         }
+
+        if (!ignore) setLoading(false);
       }
     );
 
+    // Hard timeout: absolute safety net. If onAuthStateChange never fires
+    // (network failure, Supabase outage, client bug), force loading to
+    // resolve after 15s. The AuthGuard in the layout will then redirect
+    // to login since supabaseUser is still null.
+    const timeout = setTimeout(() => {
+      if (!ignore) setLoading(false);
+    }, 15000);
+
     return () => {
       ignore = true;
-      clearTimeout(hardTimeout);
+      clearTimeout(timeout);
       subscription.unsubscribe();
     };
   }, []);

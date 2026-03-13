@@ -13,21 +13,16 @@ import { CampsOverview } from '@/components/dashboard/CampsOverview';
 import { SubmissionsOverview } from '@/components/dashboard/SubmissionsOverview';
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed';
 import { QuickActions } from '@/components/dashboard/QuickActions';
-import { LoadingPage } from '@/components/ui/LoadingSpinner';
 import { StatsCardsSkeleton, TaskListSkeleton } from '@/components/ui/Skeleton';
 import { addDays } from '@/lib/utils/date';
 
 export default function DashboardPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const { tasks, loading: tasksLoading } = useTasks();
   const { events, loading: eventsLoading } = useEvents();
   const { users, loading: usersLoading } = useUsers();
   const { camps, loading: campsLoading } = useCamps();
   const { submissions, newCount, loading: submissionsLoading } = useFormSubmissions();
-
-  if (authLoading) {
-    return <LoadingPage />;
-  }
 
   // My tasks (assigned to current user, not done)
   const myTasks = tasksLoading ? [] : tasks.filter(
