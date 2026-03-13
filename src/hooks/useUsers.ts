@@ -12,13 +12,18 @@ export function useUsers() {
     const supabase = createClient();
 
     const fetchUsers = async () => {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .order('full_name');
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .order('full_name');
 
-      if (!error && data) setUsers(data);
-      setLoading(false);
+        if (!error && data) setUsers(data);
+      } catch {
+        // Silently handle network errors
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchUsers();

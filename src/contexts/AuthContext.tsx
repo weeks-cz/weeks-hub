@@ -29,6 +29,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let ignore = false;
+    let loadingResolved = false;
+
+    // Guarantees loading becomes false — can be called multiple times safely
+    const resolveLoading = () => {
+      if (!loadingResolved && !ignore) {
+        loadingResolved = true;
+        setLoading(false);
+      }
+    };
 
     const fetchProfile = async (authUser: SupabaseUser) => {
       try {
@@ -61,48 +70,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    // Fallback: try local session (cookie-based, no network call)
-    const tryLocalSession = async () => {
-      if (ignore) return;
+    // Primary: getUser() validates the session server-side.
+    // We race it against a timeout so a slow token refresh can't block the UI.
+    const init = async () => {
+      let authUser: SupabaseUser | null = null;
+
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (ignore) return;
-        if (session?.user) {
-          setSupabaseUser(session.user);
-          await fetchProfile(session.user);
-        }
+        const { data } = await Promise.race([
+          supabase.auth.getUser(),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('auth_timeout')), 3000)
+          ),
+        ]);
+        authUser = data.user;
       } catch {
-        // Local session also failed — user will see logged-out state
+        // getUser() timed out or failed — not fatal, we continue
       }
-      if (!ignore) setLoading(false);
+
+      if (ignore) return;
+      setSupabaseUser(authUser);
+
+      if (authUser) {
+        // Try to fetch profile quickly (with its own timeout)
+        try {
+          await Promise.race([
+            fetchProfile(authUser),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error('profile_timeout')), 2000)
+            ),
+          ]);
+        } catch {
+          // Profile timed out — it will load in background via onAuthStateChange
+        }
+      }
+
+      resolveLoading();
     };
 
-    // Primary auth check — getUser() guarantees a server-validated result
-    const authPromise = supabase.auth.getUser()
-      .then(async ({ data: { user: authUser } }) => {
-        if (ignore) return;
-        setSupabaseUser(authUser);
-        if (authUser) {
-          await fetchProfile(authUser);
-        }
-        if (!ignore) setLoading(false);
-      })
-      .catch(() => {
-        // getUser() failed (network error) or fetchProfile threw — fall back to local session
-        return tryLocalSession();
-      });
+    init();
 
-    // Safety net: if everything hangs for 5s, try local session
-    const timeout = setTimeout(tryLocalSession, 5000);
-    authPromise.finally(() => clearTimeout(timeout));
+    // Hard timeout: absolute guarantee against infinite loading.
+    // Even if init() somehow hangs, this fires independently.
+    const hardTimeout = setTimeout(resolveLoading, 5000);
 
-    // Listen for subsequent auth changes (sign out, token refresh)
+    // Listen for ALL auth state changes including initial session.
+    // This catches cases where getUser() timed out but auth resolves later
+    // (e.g. after a slow token refresh completes).
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (ignore) return;
-        // Skip INITIAL_SESSION — already handled by getUser() above
-        if (event === 'INITIAL_SESSION') return;
+
         setSupabaseUser(session?.user ?? null);
+        resolveLoading();
+
         if (session?.user) {
           await fetchProfile(session.user);
         } else {
@@ -113,6 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       ignore = true;
+      clearTimeout(hardTimeout);
       subscription.unsubscribe();
     };
   }, []);

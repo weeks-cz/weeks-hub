@@ -10,16 +10,21 @@ export function useActivityLog(limit = 20) {
   const supabase = createClient();
 
   const fetchActivities = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('activity_log')
-      .select('*, user:users!activity_log_user_id_fkey(*)')
-      .order('created_at', { ascending: false })
-      .limit(limit);
+    try {
+      const { data, error } = await supabase
+        .from('activity_log')
+        .select('*, user:users!activity_log_user_id_fkey(*)')
+        .order('created_at', { ascending: false })
+        .limit(limit);
 
-    if (!error && data) {
-      setActivities(data as ActivityLog[]);
+      if (!error && data) {
+        setActivities(data as ActivityLog[]);
+      }
+    } catch {
+      // Silently handle network errors
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [limit]);
 
   useEffect(() => {
