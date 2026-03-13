@@ -69,6 +69,14 @@ export function getActivityMessage(activity: ActivityLog): string {
       return `smazal/a tábor`;
     case 'camp_enrollment_changed':
       return `změnil/a přihlášení u "${meta.title}" (${(meta.delta as number) > 0 ? '+' : ''}${meta.delta} → ${meta.new_count})`;
+    case 'submission_processed':
+      return `zpracoval/a formulář od ${meta.email}`;
+    case 'submission_archived':
+      return `archivoval/a formulář od ${meta.email}`;
+    case 'submission_deleted':
+      return `smazal/a formulář od ${meta.email}`;
+    case 'submission_note_added':
+      return `přidal/a poznámku k formuláři od ${meta.email}`;
     default:
       return activity.action_type;
   }

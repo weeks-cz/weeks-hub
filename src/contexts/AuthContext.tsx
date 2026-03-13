@@ -31,55 +31,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let ignore = false;
 
     const fetchProfile = async (authUser: SupabaseUser) => {
-      let { data: profile } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', authUser.id)
-        .single();
-
-      // Safety net: if profile doesn't exist (e.g. trigger failed for magic link user), create it
-      if (!profile && authUser.email) {
-        const { data: newProfile } = await supabase
+      try {
+        let { data: profile } = await supabase
           .from('users')
-          .insert({
-            id: authUser.id,
-            email: authUser.email,
-            full_name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || '',
-            avatar_url: authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || '',
-          })
-          .select()
+          .select('*')
+          .eq('id', authUser.id)
           .single();
-        profile = newProfile;
-      }
 
-      if (!ignore) {
-        setUser(profile);
+        // Safety net: if profile doesn't exist (e.g. trigger failed for magic link user), create it
+        if (!profile && authUser.email) {
+          const { data: newProfile } = await supabase
+            .from('users')
+            .insert({
+              id: authUser.id,
+              email: authUser.email,
+              full_name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || '',
+              avatar_url: authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || '',
+            })
+            .select()
+            .single();
+          profile = newProfile;
+        }
+
+        if (!ignore) {
+          setUser(profile);
+        }
+      } catch {
+        // Profile fetch failed — auth still works, profile will load on next attempt
       }
     };
 
-    // Primary auth check — getUser() guarantees a server-validated result
-    // Add timeout to prevent infinite loading if network is slow
-    const authPromise = supabase.auth.getUser().then(async ({ data: { user: authUser } }) => {
+    // Fallback: try local session (cookie-based, no network call)
+    const tryLocalSession = async () => {
       if (ignore) return;
-      setSupabaseUser(authUser);
-      if (authUser) {
-        await fetchProfile(authUser);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (ignore) return;
+        if (session?.user) {
+          setSupabaseUser(session.user);
+          await fetchProfile(session.user);
+        }
+      } catch {
+        // Local session also failed — user will see logged-out state
       }
       if (!ignore) setLoading(false);
-    });
+    };
 
-    // Fallback: if getUser() takes more than 5s, try getSession() (local, no network)
-    const timeout = setTimeout(async () => {
-      if (ignore) return;
-      const { data: { session } } = await supabase.auth.getSession();
-      if (ignore) return;
-      if (session?.user) {
-        setSupabaseUser(session.user);
-        await fetchProfile(session.user);
-      }
-      setLoading(false);
-    }, 5000);
+    // Primary auth check — getUser() guarantees a server-validated result
+    const authPromise = supabase.auth.getUser()
+      .then(async ({ data: { user: authUser } }) => {
+        if (ignore) return;
+        setSupabaseUser(authUser);
+        if (authUser) {
+          await fetchProfile(authUser);
+        }
+        if (!ignore) setLoading(false);
+      })
+      .catch(() => {
+        // getUser() failed (network error) or fetchProfile threw — fall back to local session
+        return tryLocalSession();
+      });
 
+    // Safety net: if everything hangs for 5s, try local session
+    const timeout = setTimeout(tryLocalSession, 5000);
     authPromise.finally(() => clearTimeout(timeout));
 
     // Listen for subsequent auth changes (sign out, token refresh)

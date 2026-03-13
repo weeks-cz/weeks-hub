@@ -3,13 +3,17 @@ export type TaskStatus = 'backlog' | 'todo' | 'in_progress' | 'review' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 export type EventType = 'camp' | 'meeting' | 'reminder' | 'deadline';
 export type CampStatus = 'collecting_interest' | 'open_no_link' | 'open_with_link' | 'full' | 'closed';
+export type FormSubmissionType = 'waitlist' | 'contact';
+export type FormSubmissionStatus = 'new' | 'processed' | 'archived';
+
 export type ActionType =
   | 'task_created' | 'task_updated' | 'task_moved' | 'task_deleted'
   | 'subtask_created' | 'subtask_completed' | 'subtask_deleted'
   | 'event_created' | 'event_updated' | 'event_deleted'
   | 'camp_created' | 'camp_updated' | 'camp_deleted' | 'camp_enrollment_changed'
+  | 'submission_processed' | 'submission_archived' | 'submission_deleted' | 'submission_note_added'
   | 'user_updated';
-export type EntityType = 'task' | 'subtask' | 'event' | 'camp' | 'user';
+export type EntityType = 'task' | 'subtask' | 'event' | 'camp' | 'form_submission' | 'user';
 
 export interface User {
   id: string;
@@ -154,4 +158,51 @@ export const CAMP_STATUS_CONFIG: Record<CampStatus, { label: string; color: stri
   open_with_link: { label: 'Registrace otevřena', color: '#10B981', icon: 'ExternalLink' },
   full: { label: 'Plný', color: '#EF4444', icon: 'UserX' },
   closed: { label: 'Uzavřeno', color: '#64748B', icon: 'Lock' },
+};
+
+// Form submissions
+export interface FormSubmission {
+  id: string;
+  form_type: FormSubmissionType;
+  email: string;
+  submitted_at: string;
+  // Waitlist fields
+  child_name: string | null;
+  child_age: string | null;
+  program: string | null;
+  gdpr_consent: boolean | null;
+  // Contact fields
+  sender_name: string | null;
+  message: string | null;
+  // Workflow
+  status: FormSubmissionStatus;
+  notes: string | null;
+  processed_by: string | null;
+  processed_at: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined
+  processor?: User | null;
+}
+
+export const FORM_TYPE_CONFIG: Record<FormSubmissionType, { label: string; color: string }> = {
+  waitlist: { label: 'Waitlist', color: '#8B5CF6' },
+  contact: { label: 'Kontakt', color: '#3B82F6' },
+};
+
+export const FORM_STATUS_CONFIG: Record<FormSubmissionStatus, { label: string; color: string }> = {
+  new: { label: 'Nový', color: '#F59E0B' },
+  processed: { label: 'Zpracováno', color: '#10B981' },
+  archived: { label: 'Archivováno', color: '#64748B' },
+};
+
+export const PROGRAM_CONFIG: Record<string, string> = {
+  'mix': 'MIX - Ochutnej vše',
+  '3d-tisk': '3D tisk',
+  'iot': 'IoT & Arduino',
+  'blender': '3D modelování (Blender)',
+  'web': 'Tvorba webu',
+  'hry': 'Vývoj her',
+  'csharp': 'Programování C#',
+  'nevim': 'Ještě nevím',
 };

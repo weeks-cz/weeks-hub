@@ -5,10 +5,12 @@ import { useTasks } from '@/hooks/useTasks';
 import { useEvents } from '@/hooks/useEvents';
 import { useUsers } from '@/hooks/useUsers';
 import { useCamps } from '@/hooks/useCamps';
+import { useFormSubmissions } from '@/hooks/useFormSubmissions';
 import { StatsCards } from '@/components/dashboard/StatsCards';
 import { MyTasks } from '@/components/dashboard/MyTasks';
 import { UpcomingEvents } from '@/components/dashboard/UpcomingEvents';
 import { CampsOverview } from '@/components/dashboard/CampsOverview';
+import { SubmissionsOverview } from '@/components/dashboard/SubmissionsOverview';
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { LoadingPage } from '@/components/ui/LoadingSpinner';
@@ -21,6 +23,7 @@ export default function DashboardPage() {
   const { events, loading: eventsLoading } = useEvents();
   const { users, loading: usersLoading } = useUsers();
   const { camps, loading: campsLoading } = useCamps();
+  const { submissions, newCount, loading: submissionsLoading } = useFormSubmissions();
 
   if (authLoading) {
     return <LoadingPage />;
@@ -80,6 +83,11 @@ export default function DashboardPage() {
             <TaskListSkeleton />
           ) : (
             <CampsOverview camps={camps} />
+          )}
+          {submissionsLoading ? (
+            <TaskListSkeleton />
+          ) : (
+            <SubmissionsOverview submissions={submissions} newCount={newCount} />
           )}
           <ActivityFeed />
         </div>
