@@ -54,7 +54,7 @@ export function StatsCards({ tasks, events, users }: StatsCardsProps) {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: index * 0.08 }}
-            className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-4"
+            className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-4 hover:border-[var(--color-primary)]/20 transition-colors duration-300"
           >
             <div className="flex items-center gap-3">
               <div

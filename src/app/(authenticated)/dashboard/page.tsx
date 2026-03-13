@@ -43,12 +43,17 @@ export default function DashboardPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
+      {/* Decorative blobs */}
+      <div className="blob blob-primary w-[300px] h-[300px] -top-32 -right-32" />
+      <div className="blob blob-accent w-[200px] h-[200px] top-64 -left-24" />
+
       {/* Welcome + Quick Actions */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between relative">
         <div>
-          <h2 className="text-2xl font-bold text-[var(--text-primary)] font-[family-name:var(--font-heading)]">
-            Ahoj, {user?.full_name?.split(' ')[0] || 'tam'}! 👋
+          <h2 className="text-2xl font-bold font-[family-name:var(--font-heading)]">
+            <span className="text-[var(--text-primary)]">Ahoj, </span>
+            <span className="text-gradient">{user?.full_name?.split(' ')[0] || 'tam'}</span>
           </h2>
           <p className="text-sm text-[var(--text-muted)] mt-1">
             Tady je přehled tvého dne

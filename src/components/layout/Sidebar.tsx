@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { LayoutDashboard, Kanban, Calendar, Tent, FileText, User, LogOut } from 'lucide-react';
@@ -22,12 +23,10 @@ export function Sidebar() {
 
   return (
     <aside className="hidden lg:flex flex-col w-[260px] h-screen bg-[var(--bg-surface)] border-r border-[var(--border-default)] fixed left-0 top-0 z-30">
-      {/* Logo with gradient */}
+      {/* Logo */}
       <div className="flex items-center gap-3 px-6 h-16 border-b border-[var(--border-default)] bg-gradient-to-r from-[var(--color-primary)]/5 to-transparent">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-hover)] flex items-center justify-center shadow-lg shadow-[var(--color-primary)]/20">
-          <span className="text-sm font-bold text-white font-[family-name:var(--font-heading)]">W</span>
-        </div>
-        <span className="text-lg font-semibold text-[var(--text-primary)] font-[family-name:var(--font-heading)]">
+        <Image src="/weeks-logo.png" alt="Weeks" width={36} height={36} className="rounded-lg" />
+        <span className="text-lg font-semibold text-gradient font-[family-name:var(--font-heading)]">
           {APP_NAME}
         </span>
       </div>

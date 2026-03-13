@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Kanban, Calendar, Tent, FileText, User, X, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
@@ -38,10 +39,8 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
       <div className="fixed inset-y-0 left-0 w-[280px] bg-[var(--bg-surface)] border-r border-[var(--border-default)] z-50 lg:hidden animate-slide-down">
         <div className="flex items-center justify-between px-6 h-16 border-b border-[var(--border-default)]">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)] flex items-center justify-center">
-              <span className="text-sm font-bold text-white font-[family-name:var(--font-heading)]">W</span>
-            </div>
-            <span className="text-lg font-semibold text-[var(--text-primary)] font-[family-name:var(--font-heading)]">
+            <Image src="/weeks-logo.png" alt="Weeks" width={32} height={32} className="rounded-lg" />
+            <span className="text-lg font-semibold text-gradient font-[family-name:var(--font-heading)]">
               {APP_NAME}
             </span>
           </div>
