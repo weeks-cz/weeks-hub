@@ -189,36 +189,75 @@ export function useTasks(filters?: TaskFilters) {
   };
 
   const moveTask = async (taskId: string, newStatus: TaskStatus, newPosition: number) => {
-    // Optimistic update: move task in local state immediately
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === taskId ? { ...t, status: newStatus, position: newPosition } : t
+    // Compute the full new ordering for affected columns, then apply
+    // both the optimistic local update and the server writes at once.
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) return false;
+
+    const oldStatus = task.status;
+
+    // Build reordered lists for the source and destination columns
+    const destTasks = tasks
+      .filter((t) => t.status === newStatus && t.id !== taskId)
+      .sort((a, b) => a.position - b.position);
+    destTasks.splice(newPosition, 0, { ...task, status: newStatus } as Task);
+
+    // Assign sequential positions
+    const updates: { id: string; status: TaskStatus; position: number }[] = [];
+    destTasks.forEach((t, i) => {
+      updates.push({ id: t.id, status: newStatus, position: i });
+    });
+
+    // If moved across columns, also reorder the source column
+    if (oldStatus !== newStatus) {
+      const srcTasks = tasks
+        .filter((t) => t.status === oldStatus && t.id !== taskId)
+        .sort((a, b) => a.position - b.position);
+      srcTasks.forEach((t, i) => {
+        updates.push({ id: t.id, status: oldStatus, position: i });
+      });
+    }
+
+    // Optimistic update
+    setTasks((prev) => {
+      const next = [...prev];
+      for (const u of updates) {
+        const idx = next.findIndex((t) => t.id === u.id);
+        if (idx !== -1) {
+          next[idx] = { ...next[idx], status: u.status, position: u.position };
+        }
+      }
+      return next;
+    });
+
+    // Suppress realtime refetch while server writes are in progress
+    suppressRealtimeUntil.current = Date.now() + 3000;
+
+    // Write all position updates to the server
+    let hasError = false;
+    await Promise.all(
+      updates.map(({ id, status, position }) =>
+        supabase
+          .from('tasks')
+          .update({ status, position })
+          .eq('id', id)
+          .then(({ error }) => { if (error) hasError = true; })
       )
     );
 
-    // Suppress realtime refetch for 2s so the optimistic update isn't overwritten
-    // by a stale fetch triggered by the realtime subscription.
-    suppressRealtimeUntil.current = Date.now() + 2000;
-
-    const { error } = await supabase
-      .from('tasks')
-      .update({ status: newStatus, position: newPosition })
-      .eq('id', taskId);
-
-    if (!error) {
+    if (!hasError) {
       const userId = await getUserId();
       if (userId) {
         logActivity(userId, 'task_moved', taskId, { new_status: newStatus });
       }
-      // Refetch after server confirmed the write (not before)
-      fetchTasks();
     } else {
       toast.error('Nepodařilo se přesunout task');
-      // Revert on failure
-      fetchTasks();
     }
 
-    return !error;
+    // Sync with server after writes complete
+    fetchTasks();
+
+    return !hasError;
   };
 
   const deleteTask = async (taskId: string) => {
