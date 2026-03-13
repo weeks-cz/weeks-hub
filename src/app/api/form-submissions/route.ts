@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const VALID_PROGRAMS = ['mix', '3d-tisk', 'iot', 'blender', 'web', 'hry', 'csharp', 'nevim'];
+const VALID_PROGRAMS = ['mix', 'mix-leto', '3d-tisk', 'iot', 'blender', 'web', 'hry', 'csharp', 'nevim'];
 
 export async function POST(request: NextRequest) {
   // Verify API key
