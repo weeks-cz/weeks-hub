@@ -27,75 +27,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
+  // ── Step 1: Auth state listener ─────────────────────────────────
+  // CRITICAL: The callback must be SYNCHRONOUS (no Supabase queries).
+  // The Supabase client holds an internal auth lock while processing
+  // onAuthStateChange events. Any query inside the callback calls
+  // getSession() to get the current token, which waits for that same
+  // lock → deadlock. The callback never finishes, the lock is never
+  // released, and ALL subsequent queries (including hooks) hang forever.
   useEffect(() => {
     let ignore = false;
 
-    const fetchProfile = async (authUser: SupabaseUser) => {
-      try {
-        let { data: profile } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', authUser.id)
-          .single();
-
-        // Safety net: if profile doesn't exist (e.g. trigger failed for magic link user), create it
-        if (!profile && authUser.email) {
-          const { data: newProfile } = await supabase
-            .from('users')
-            .insert({
-              id: authUser.id,
-              email: authUser.email,
-              full_name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || '',
-              avatar_url: authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || '',
-            })
-            .select()
-            .single();
-          profile = newProfile;
-        }
-
-        if (!ignore) {
-          setUser(profile);
-        }
-      } catch {
-        // Profile fetch failed — auth still works, profile will load on next attempt
-      }
-    };
-
-    // onAuthStateChange is the SOLE mechanism for resolving auth state.
-    //
-    // Why NOT getUser() or getSession():
-    //   Both go through the Supabase client's internal token refresh lock.
-    //   If the access token is expired, the client starts a refresh.
-    //   ALL calls through the client (getUser, getSession, queries) are
-    //   serialized behind this lock. Racing with a timeout just creates
-    //   a broken state where loading resolves but data isn't available.
-    //
-    // onAuthStateChange fires INITIAL_SESSION after the lock resolves,
-    // guaranteeing we get a valid session (or null if truly expired).
-    // We wait for this event — the loading spinner shows in the meantime.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         if (ignore) return;
 
-        const authUser = session?.user ?? null;
-        setSupabaseUser(authUser);
+        // Only update React state — NO Supabase queries here!
+        setSupabaseUser(session?.user ?? null);
 
-        if (authUser) {
-          // Fetch profile BEFORE resolving loading so the UI never
-          // flashes with "Ahoj, tam" (null user).
-          await fetchProfile(authUser);
-        } else {
+        if (!session?.user) {
           setUser(null);
+          setLoading(false);
         }
-
-        if (!ignore) setLoading(false);
+        // When session.user exists, loading stays true until the
+        // profile is fetched in the separate effect below.
       }
     );
 
-    // Hard timeout: absolute safety net. If onAuthStateChange never fires
-    // (network failure, Supabase outage, client bug), force loading to
-    // resolve after 15s. The AuthGuard in the layout will then redirect
-    // to login since supabaseUser is still null.
+    // Hard timeout: if onAuthStateChange never fires (network failure,
+    // Supabase outage), force loading to resolve. AuthGuard will
+    // redirect to login since supabaseUser is still null.
     const timeout = setTimeout(() => {
       if (!ignore) setLoading(false);
     }, 15000);
@@ -106,6 +66,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       subscription.unsubscribe();
     };
   }, []);
+
+  // ── Step 2: Profile fetch (separate from auth callback) ─────────
+  // Runs AFTER the auth lock is released, so queries execute normally.
+  // Triggers when supabaseUser.id changes (initial login, user switch).
+  // Does NOT re-trigger on TOKEN_REFRESHED (same id, different token).
+  useEffect(() => {
+    if (!supabaseUser) return;
+    let ignore = false;
+
+    const fetchProfile = async () => {
+      try {
+        let { data: profile } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', supabaseUser.id)
+          .single();
+
+        // Safety net: create profile if trigger didn't fire (magic link edge case)
+        if (!profile && supabaseUser.email) {
+          const { data: newProfile } = await supabase
+            .from('users')
+            .insert({
+              id: supabaseUser.id,
+              email: supabaseUser.email,
+              full_name: supabaseUser.user_metadata?.full_name || supabaseUser.user_metadata?.name || '',
+              avatar_url: supabaseUser.user_metadata?.avatar_url || supabaseUser.user_metadata?.picture || '',
+            })
+            .select()
+            .single();
+          profile = newProfile;
+        }
+
+        if (!ignore) setUser(profile);
+      } catch {
+        // Profile fetch failed — user will see fallback name
+      } finally {
+        // ALWAYS resolve loading, even if profile fetch fails
+        if (!ignore) setLoading(false);
+      }
+    };
+
+    fetchProfile();
+
+    return () => { ignore = true; };
+  }, [supabaseUser?.id]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
