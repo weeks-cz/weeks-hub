@@ -13,6 +13,7 @@ export const ROUTES = {
   calendar: '/calendar',
   camps: '/camps',
   formulare: '/formulare',
+  analytics: '/analytics',
   profile: '/profile',
   profileEdit: '/profile/edit',
 } as const;
@@ -23,4 +24,5 @@ export const NAV_ITEMS = [
   { label: 'Kalendář', href: ROUTES.calendar, icon: 'Calendar' as const },
   { label: 'Tábory', href: ROUTES.camps, icon: 'Tent' as const },
   { label: 'Formuláře', href: ROUTES.formulare, icon: 'FileText' as const },
+  { label: 'Analytika', href: ROUTES.analytics, icon: 'BarChart3' as const },
 ] as const;

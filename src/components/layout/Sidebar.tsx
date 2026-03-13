@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, Kanban, Calendar, Tent, FileText, User, LogOut } from 'lucide-react';
+import { LayoutDashboard, Kanban, Calendar, Tent, FileText, BarChart3, User, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useAuth } from '@/contexts/AuthContext';
 import { NAV_ITEMS, ROUTES, APP_NAME } from '@/lib/utils/constants';
@@ -15,6 +15,7 @@ const ICONS = {
   Calendar,
   Tent,
   FileText,
+  BarChart3,
 } as const;
 
 export function Sidebar() {
