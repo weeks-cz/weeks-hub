@@ -179,7 +179,7 @@ export function KanbanBoard() {
       <TaskDetailPanel
         task={selectedTask}
         allTasks={tasks}
-        isOpen={!!selectedTask}
+        isOpen={!!selectedTaskId}
         onClose={closeTask}
         onUpdate={updateTask}
         onDelete={deleteTask}
@@ -190,8 +190,8 @@ export function KanbanBoard() {
         onDeleteSubtask={deleteSubtask}
         onAddChildTask={addChildTask}
         onNavigateToTask={(taskId) => {
-          const t = tasks.find((t) => t.id === taskId);
-          if (t) openTask(t);
+          setSelectedTaskId(taskId);
+          router.replace(`/board?task=${taskId}`, { scroll: false });
         }}
       />
 
