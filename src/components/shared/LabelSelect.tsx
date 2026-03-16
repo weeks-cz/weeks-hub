@@ -69,7 +69,7 @@ export function LabelSelect({ value, onChange, className }: LabelSelectProps) {
         </button>
 
         {isOpen && (
-          <div className="absolute z-10 top-full mt-1 w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl shadow-lg overflow-hidden animate-fade-in">
+          <div className="absolute z-10 bottom-full mb-1 w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl shadow-lg overflow-hidden animate-fade-in max-h-48 overflow-y-auto">
             {labels.map((label) => (
               <button
                 key={label.id}
