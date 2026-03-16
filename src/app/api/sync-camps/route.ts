@@ -99,6 +99,17 @@ export async function POST(request: Request) {
         ? `${webCamp.location}, ${webCamp.locationDetail}`
         : webCamp.location;
 
+      // Derive status from data: if has registration URL → open_with_link
+      // If capacity full → full, otherwise use API status with fallback mapping
+      let resolvedStatus = webCamp.status;
+      if (enrolledCount >= webCamp.capacity && webCamp.capacity > 0) {
+        resolvedStatus = 'full';
+      } else if (webCamp.registrationUrl) {
+        resolvedStatus = 'open_with_link';
+      } else if (resolvedStatus === 'open' || resolvedStatus === 'open_no_link') {
+        resolvedStatus = 'open_no_link';
+      }
+
       const campData = {
         title: webCamp.title,
         description: `${webCamp.program.toUpperCase()} | ${webCamp.campType === 'weekend' ? 'Víkendový' : 'Jednodenní'} | ${webCamp.price} Kč`,
@@ -107,7 +118,7 @@ export async function POST(request: Request) {
         location: locationFull,
         capacity: webCamp.capacity,
         enrolled_count: enrolledCount,
-        status: webCamp.status,
+        status: resolvedStatus,
         registration_url: webCamp.registrationUrl,
         web_source_id: webCamp.id,
       };
@@ -127,7 +138,7 @@ export async function POST(request: Request) {
           .from('camps')
           .update({
             enrolled_count: enrolledCount,
-            status: webCamp.status,
+            status: resolvedStatus,
             registration_url: webCamp.registrationUrl,
             capacity: webCamp.capacity,
             web_source_id: webCamp.id,
