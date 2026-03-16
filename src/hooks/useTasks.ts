@@ -28,7 +28,6 @@ export function useTasks(filters?: TaskFilters) {
           assignee:users!tasks_assignee_id_fkey(*),
           creator:users!tasks_created_by_fkey(*),
           subtasks(*, assignee:users!subtasks_assignee_id_fkey(*)),
-          child_tasks:tasks!tasks_parent_task_id_fkey(*, assignee:users!tasks_assignee_id_fkey(*)),
           task_labels(label_id, labels(*))
         `)
         .order('position', { ascending: true });
