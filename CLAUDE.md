@@ -120,6 +120,7 @@ npx tsc --noEmit # TypeScript check (preferovaný způsob ověření před push)
 - **LabelSelect dropdown:** Nesmí být absolute positioned (bottom-full/top-full) — způsobuje overflow bugy. Použít statický element
 - **Migrace:** Spouštějí se ručně v Supabase SQL Editoru. Aktuální: 001-008
 - **npm run build:** Selže bez Supabase env vars (prerendering) — pro kontrolu použít `npx tsc --noEmit`
+- **🐛 BUG: Subtask navigace nefunguje** — kliknutí na child task v TaskDetailPanel neotevře jeho detail. Problém je v `onNavigateToTask` handleru v KanbanBoard — nastavení `selectedTaskId` na child task ID nepřepne panel. Potřebuje debug: zkontrolovat zda child task existuje v `tasks` poli, zda se `selectedTask` správně resolvuje, a zda panel reaguje na změnu tasku
 
 ## Stav nasazení
 - [x] Supabase projekt + Custom doména app.weeks.cz
