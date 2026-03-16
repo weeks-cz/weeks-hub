@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Check, Trash2, Calendar, ChevronDown, Paperclip, MessageSquare, ArrowLeft } from 'lucide-react';
+import { X, Check, Trash2, Calendar, ChevronDown, Paperclip, MessageSquare, ArrowLeft, Tag } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
+import { LabelSelect } from '@/components/shared/LabelSelect';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { SubtaskList } from './SubtaskList';
@@ -331,13 +332,12 @@ export function TaskDetailPanel({
                   </div>
 
                   {/* Labels */}
-                  {task.labels && task.labels.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {task.labels.map((label) => (
-                        <Badge key={label.id} color={label.color}>{label.name}</Badge>
-                      ))}
-                    </div>
-                  )}
+                  <div>
+                    <LabelSelect
+                      value={task.labels?.map((l) => l.id) || []}
+                      onChange={(labelIds) => onUpdate(task.id, { labelIds })}
+                    />
+                  </div>
 
                   {/* Description */}
                   <div>
