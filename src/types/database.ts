@@ -133,6 +133,19 @@ export interface ActivityLog {
   user?: User;
 }
 
+export type NotificationType = 'task_assigned' | 'new_submission' | 'camp_enrollment';
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  link: string | null;
+  read: boolean;
+  created_at: string;
+}
+
 // Column config for Kanban board
 export const TASK_COLUMNS: { id: TaskStatus; title: string }[] = [
   { id: 'backlog', title: 'Backlog' },

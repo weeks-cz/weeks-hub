@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation';
 import { Menu } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { NotificationBell } from '@/components/layout/NotificationBell';
 
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard',
@@ -10,6 +11,8 @@ const PAGE_TITLES: Record<string, string> = {
   '/calendar': 'Kalendář',
   '/profile': 'Profil',
   '/profile/edit': 'Upravit profil',
+  '/admin': 'Administrace',
+  '/admin/users': 'Správa uživatelů',
 };
 
 interface HeaderProps {
@@ -21,6 +24,8 @@ export function Header({ onMenuToggle }: HeaderProps) {
   const { user } = useAuth();
 
   const title = PAGE_TITLES[pathname] ?? 'Weeks Hub';
+
+  const avatarSrc = user?.custom_avatar_url || user?.avatar_url;
 
   return (
     <header className="h-16 bg-[var(--bg-surface)]/80 backdrop-blur-xl border-b border-[var(--border-default)] flex items-center justify-between px-4 lg:px-6 sticky top-0 z-20">
@@ -37,17 +42,18 @@ export function Header({ onMenuToggle }: HeaderProps) {
         </h1>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
+        <NotificationBell />
         {user && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 ml-1">
             <span className="text-sm text-[var(--text-secondary)] hidden sm:block">
               {user.full_name}
             </span>
-            {user.avatar_url ? (
+            {avatarSrc ? (
               <img
-                src={user.avatar_url}
+                src={avatarSrc}
                 alt={user.full_name}
-                className="w-8 h-8 rounded-full border-2 border-[var(--border-default)]"
+                className="w-8 h-8 rounded-full border-2 border-[var(--border-default)] object-cover"
               />
             ) : (
               <div className="w-8 h-8 rounded-full bg-[var(--color-primary)] flex items-center justify-center text-xs font-medium text-white">

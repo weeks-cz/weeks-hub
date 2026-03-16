@@ -59,19 +59,19 @@ export async function POST(request: Request) {
     // Get existing camps from DB to check for duplicates (match by web_id)
     const { data: existingCamps } = await supabase
       .from('camps')
-      .select('id, title, start_date, end_date, web_source_id');
+      .select('id, title, start_date, end_date, web_source_id, enrolled_count');
 
     const existingByWebId = new Map(
       (existingCamps || [])
         .filter((c: { web_source_id?: string }) => c.web_source_id)
-        .map((c: { web_source_id: string; id: string }) => [c.web_source_id, c.id])
+        .map((c: { web_source_id: string; id: string; enrolled_count: number; title: string }) => [c.web_source_id, c])
     );
 
     // Also match by title + start_date for camps created before sync was added
     const existingByKey = new Map(
-      (existingCamps || []).map((c: { title: string; start_date: string; id: string }) => [
+      (existingCamps || []).map((c: { title: string; start_date: string; id: string; enrolled_count: number }) => [
         `${c.title}::${c.start_date}`,
-        c.id,
+        c,
       ])
     );
 
@@ -113,10 +113,15 @@ export async function POST(request: Request) {
       };
 
       // Check if already exists
-      const existingId = existingByWebId.get(webCamp.id)
+      const existingCamp = existingByWebId.get(webCamp.id)
         || existingByKey.get(`${webCamp.title}::${webCamp.startDate}`);
+      const existingId = existingCamp?.id;
 
       if (existingId) {
+        // Track enrollment change for notifications
+        const oldEnrolled = existingCamp.enrolled_count ?? 0;
+        const enrollmentDiff = enrolledCount - oldEnrolled;
+
         // Update existing camp with fresh data
         const { error } = await supabase
           .from('camps')
@@ -129,8 +134,29 @@ export async function POST(request: Request) {
           })
           .eq('id', existingId);
 
-        if (!error) updated++;
-        else skipped++;
+        if (!error) {
+          updated++;
+          // Notify admins about enrollment changes
+          if (enrollmentDiff !== 0) {
+            const { data: admins } = await supabase
+              .from('users')
+              .select('id')
+              .in('role', ['admin', 'developer']);
+
+            if (admins && admins.length > 0) {
+              const action = enrollmentDiff > 0 ? 'přihlášení' : 'odhlášení';
+              await supabase.from('notifications').insert(
+                admins.map((admin: { id: string }) => ({
+                  user_id: admin.id,
+                  type: 'camp_enrollment',
+                  title: `${webCamp.title}: ${action}`,
+                  message: `${Math.abs(enrollmentDiff)}× ${action} (${enrolledCount}/${webCamp.capacity})`,
+                  link: '/camps',
+                }))
+              );
+            }
+          }
+        } else skipped++;
       } else {
         // Create new camp
         const { error } = await supabase

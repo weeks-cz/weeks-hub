@@ -65,6 +65,25 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Notify admins/developers about new submission
+    const { data: admins } = await supabase
+      .from('users')
+      .select('id')
+      .in('role', ['admin', 'developer']);
+
+    if (admins && admins.length > 0) {
+      const typeLabel = form_type === 'waitlist' ? 'Waitlist' : 'Kontakt';
+      await supabase.from('notifications').insert(
+        admins.map((admin) => ({
+          user_id: admin.id,
+          type: 'new_submission',
+          title: `Nový formulář: ${typeLabel}`,
+          message: `${body.email} odeslal/a ${typeLabel.toLowerCase()} formulář`,
+          link: '/formulare',
+        }))
+      );
+    }
+
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });

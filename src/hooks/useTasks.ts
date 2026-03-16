@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { createClient } from '@/lib/supabase/client';
 import type { Task, TaskStatus, TaskPriority, Subtask } from '@/types/database';
+import { createNotification } from '@/hooks/useNotifications';
 
 interface TaskFilters {
   assigneeId?: string | null;
@@ -145,6 +146,16 @@ export function useTasks(filters?: TaskFilters) {
 
     if (newTask) {
       logActivity(userId, 'task_created', newTask.id, { title: task.title });
+      // Notify assignee if assigned to someone else
+      if (task.assignee_id && task.assignee_id !== userId) {
+        createNotification({
+          userId: task.assignee_id,
+          type: 'task_assigned',
+          title: 'Nový task',
+          message: `Byl ti přiřazen task: ${task.title}`,
+          link: '/board',
+        });
+      }
       fetchTasks();
       toast.success('Task vytvořen');
     }
@@ -178,6 +189,19 @@ export function useTasks(filters?: TaskFilters) {
       const userId = await getUserId();
       if (userId) {
         logActivity(userId, 'task_updated', taskId, { updates: Object.keys(cleanUpdates) });
+        // Notify new assignee if changed to someone else
+        if (cleanUpdates.assignee_id && cleanUpdates.assignee_id !== userId) {
+          const existingTask = tasks.find((t) => t.id === taskId);
+          if (existingTask && existingTask.assignee_id !== cleanUpdates.assignee_id) {
+            createNotification({
+              userId: cleanUpdates.assignee_id,
+              type: 'task_assigned',
+              title: 'Task přiřazen',
+              message: `Byl ti přiřazen task: ${existingTask.title}`,
+              link: '/board',
+            });
+          }
+        }
       }
       fetchTasks();
       toast.success('Task aktualizován');
