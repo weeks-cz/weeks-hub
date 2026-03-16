@@ -11,7 +11,7 @@ import { MyTasks } from '@/components/dashboard/MyTasks';
 import { UpcomingEvents } from '@/components/dashboard/UpcomingEvents';
 import { CampsOverview } from '@/components/dashboard/CampsOverview';
 import { SubmissionsOverview } from '@/components/dashboard/SubmissionsOverview';
-import { ActivityFeed } from '@/components/dashboard/ActivityFeed';
+import { TeamTasks } from '@/components/dashboard/TeamTasks';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { StatsCardsSkeleton, TaskListSkeleton } from '@/components/ui/Skeleton';
 import { addDays } from '@/lib/utils/date';
@@ -57,39 +57,71 @@ export default function DashboardPage() {
         <QuickActions />
       </div>
 
-      {/* Stats */}
-      {tasksLoading || eventsLoading || usersLoading ? (
-        <StatsCardsSkeleton />
-      ) : (
-        <StatsCards tasks={tasks} events={events} users={users} />
-      )}
-
-      {/* Main grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 space-y-4">
+      {/* Mobile: Tasky first (order-1), then stats (order-2), then rest */}
+      <div className="flex flex-col gap-4 lg:contents">
+        {/* My Tasks — on mobile appears first */}
+        <div className="order-1 lg:order-none lg:hidden">
           {tasksLoading ? (
             <TaskListSkeleton />
           ) : (
             <MyTasks tasks={myTasks} />
           )}
+        </div>
+
+        {/* Stats */}
+        <div className="order-2 lg:order-none">
+          {tasksLoading || eventsLoading || usersLoading ? (
+            <StatsCardsSkeleton />
+          ) : (
+            <StatsCards tasks={tasks} events={events} users={users} />
+          )}
+        </div>
+      </div>
+
+      {/* Bento Grid — Desktop */}
+      <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-4">
+        {/* My Tasks — desktop (hidden on mobile, shown above instead) */}
+        <div className="hidden lg:block lg:row-span-2">
+          {tasksLoading ? (
+            <TaskListSkeleton />
+          ) : (
+            <MyTasks tasks={myTasks} />
+          )}
+        </div>
+
+        {/* Upcoming Events */}
+        <div>
           {eventsLoading ? (
             <TaskListSkeleton />
           ) : (
             <UpcomingEvents events={upcomingEvents} />
           )}
         </div>
-        <div className="space-y-4">
+
+        {/* Camps */}
+        <div>
           {campsLoading ? (
             <TaskListSkeleton />
           ) : (
             <CampsOverview camps={camps} />
           )}
+        </div>
+
+        {/* Bottom row: Submissions + Team */}
+        <div>
           {submissionsLoading ? (
             <TaskListSkeleton />
           ) : (
             <SubmissionsOverview submissions={submissions} newCount={newCount} />
           )}
-          <ActivityFeed />
+        </div>
+
+        <div>
+          {tasksLoading || usersLoading ? (
+            <TaskListSkeleton />
+          ) : (
+            <TeamTasks tasks={tasks} users={users} currentUserId={user?.id} />
+          )}
         </div>
       </div>
     </div>
