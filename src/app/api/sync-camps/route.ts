@@ -211,6 +211,15 @@ export async function POST(request: Request) {
       }
     }
 
+    // Debug: include raw API data for troubleshooting
+    const debug = webCamps.map((c) => ({
+      title: c.title,
+      apiStatus: c.status,
+      registrationUrl: c.registrationUrl,
+      enrolledCount: c.enrolledCount,
+      capacity: c.capacity,
+    }));
+
     return NextResponse.json({
       success: true,
       created,
@@ -218,6 +227,7 @@ export async function POST(request: Request) {
       skipped,
       remindersCreated,
       total: webCamps.length,
+      debug,
     });
   } catch (error) {
     console.error('Sync camps error:', error);
