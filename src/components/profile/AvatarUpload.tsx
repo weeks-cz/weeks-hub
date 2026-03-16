@@ -45,7 +45,8 @@ export function AvatarUpload({ userId, currentAvatarUrl, customAvatarUrl, name, 
       .upload(path, file, { upsert: true });
 
     if (uploadError) {
-      toast.error('Nahrávání selhalo');
+      console.error('Avatar upload error:', uploadError);
+      toast.error(`Nahrávání selhalo: ${uploadError.message}`);
       setUploading(false);
       return;
     }
