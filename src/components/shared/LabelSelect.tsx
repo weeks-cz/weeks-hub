@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Badge } from '@/components/ui/Badge';
-import { X } from 'lucide-react';
+import { X, Tag } from 'lucide-react';
 import type { Label } from '@/types/database';
 
 interface LabelSelectProps {
@@ -15,6 +15,7 @@ interface LabelSelectProps {
 export function LabelSelect({ value, onChange, className }: LabelSelectProps) {
   const [labels, setLabels] = useState<Label[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchLabels = async () => {
@@ -24,6 +25,18 @@ export function LabelSelect({ value, onChange, className }: LabelSelectProps) {
     };
     fetchLabels();
   }, []);
+
+  // Close on click outside
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [isOpen]);
 
   const selectedLabels = labels.filter((l) => value.includes(l.id));
 
@@ -36,62 +49,61 @@ export function LabelSelect({ value, onChange, className }: LabelSelectProps) {
   };
 
   return (
-    <div className={className}>
+    <div className={className} ref={containerRef}>
       <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
         Štítky
       </label>
 
-      {/* Selected labels */}
-      {selectedLabels.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-2">
-          {selectedLabels.map((label) => (
-            <Badge key={label.id} color={label.color}>
-              {label.name}
-              <button
-                type="button"
-                onClick={() => toggleLabel(label.id)}
-                className="ml-1 hover:opacity-70"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </Badge>
-          ))}
-        </div>
-      )}
+      {/* Selected labels + add button inline */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        {selectedLabels.map((label) => (
+          <Badge key={label.id} color={label.color}>
+            {label.name}
+            <button
+              type="button"
+              onClick={() => toggleLabel(label.id)}
+              className="ml-1 hover:opacity-70"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </Badge>
+        ))}
 
-      <div className="relative">
+        {/* Toggle button */}
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-xl text-sm text-[var(--text-muted)] text-left focus:outline-none focus:border-[var(--color-primary)] transition-colors"
+          className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] border border-dashed border-[var(--border-default)] transition-colors"
         >
-          {selectedLabels.length === 0 ? 'Přidat štítky...' : 'Přidat další...'}
+          <Tag className="w-3 h-3" />
+          {selectedLabels.length === 0 ? 'Přidat štítek' : '+'}
         </button>
-
-        {isOpen && (
-          <div className="absolute z-10 bottom-full mb-1 w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl shadow-lg overflow-hidden animate-fade-in max-h-48 overflow-y-auto">
-            {labels.map((label) => (
-              <button
-                key={label.id}
-                type="button"
-                onClick={() => toggleLabel(label.id)}
-                className="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-[var(--bg-surface-hover)] transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <span
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: label.color }}
-                  />
-                  <span className="text-[var(--text-primary)]">{label.name}</span>
-                </div>
-                {value.includes(label.id) && (
-                  <span className="text-[var(--color-primary)]">&#10003;</span>
-                )}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
+
+      {/* Dropdown */}
+      {isOpen && (
+        <div className="mt-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl shadow-lg overflow-hidden max-h-52 overflow-y-auto animate-fade-in">
+          {labels.map((label) => (
+            <button
+              key={label.id}
+              type="button"
+              onClick={() => toggleLabel(label.id)}
+              className="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-[var(--bg-surface-hover)] transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <span
+                  className="w-3 h-3 rounded-full shrink-0"
+                  style={{ backgroundColor: label.color }}
+                />
+                <span className="text-[var(--text-primary)]">{label.name}</span>
+              </div>
+              {value.includes(label.id) && (
+                <span className="text-[var(--color-primary)]">✓</span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
