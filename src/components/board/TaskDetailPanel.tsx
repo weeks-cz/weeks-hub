@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils/cn';
 
 interface TaskDetailPanelProps {
   task: Task | null;
+  allTasks: Task[];
   isOpen: boolean;
   onClose: () => void;
   onUpdate: (taskId: string, updates: Partial<Task> & { labelIds?: string[] }) => Promise<boolean>;
@@ -31,10 +32,13 @@ interface TaskDetailPanelProps {
   onUpdateSubtask: (subtaskId: string, updates: { title?: string; assignee_id?: string | null; description?: string | null; completed?: boolean }) => Promise<boolean>;
   onToggleSubtask: (subtaskId: string, completed: boolean) => Promise<boolean>;
   onDeleteSubtask: (subtaskId: string) => Promise<boolean>;
+  onAddChildTask: (parentTaskId: string, title: string) => Promise<unknown>;
+  onNavigateToTask: (taskId: string) => void;
 }
 
 export function TaskDetailPanel({
   task,
+  allTasks,
   isOpen,
   onClose,
   onUpdate,
@@ -44,6 +48,8 @@ export function TaskDetailPanel({
   onUpdateSubtask,
   onToggleSubtask,
   onDeleteSubtask,
+  onAddChildTask,
+  onNavigateToTask,
 }: TaskDetailPanelProps) {
   const { users } = useUsers();
   const { comments, loading: commentsLoading, addComment, updateComment, deleteComment } = useTaskComments(task?.id ?? null);
@@ -62,6 +68,24 @@ export function TaskDetailPanel({
 
   const titleInputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+
+  // Build breadcrumb chain
+  const breadcrumb: { id: string; title: string }[] = [];
+  if (task) {
+    let current: Task | undefined = task;
+    const chain: { id: string; title: string }[] = [];
+    while (current?.parent_task_id) {
+      const parent = allTasks.find((t) => t.id === current!.parent_task_id);
+      if (parent) {
+        chain.unshift({ id: parent.id, title: parent.title });
+        current = parent;
+      } else break;
+    }
+    breadcrumb.push(...chain);
+  }
+
+  // Get child tasks for current task
+  const childTasks = task ? allTasks.filter((t) => t.parent_task_id === task.id).sort((a, b) => a.position - b.position) : [];
 
   useEffect(() => {
     if (task) {
@@ -191,6 +215,23 @@ export function TaskDetailPanel({
               {/* Scrollable content */}
               <div className="flex-1 overflow-y-auto">
                 <div className="p-4 lg:p-6 space-y-5">
+                  {/* Breadcrumb */}
+                  {breadcrumb.length > 0 && (
+                    <div className="flex items-center gap-1 text-xs text-[var(--text-muted)] flex-wrap">
+                      {breadcrumb.map((item, i) => (
+                        <span key={item.id} className="flex items-center gap-1">
+                          <button
+                            onClick={() => onNavigateToTask(item.id)}
+                            className="hover:text-[var(--color-primary)] transition-colors truncate max-w-[150px]"
+                          >
+                            {item.title}
+                          </button>
+                          <span>›</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
                   {/* Title */}
                   {editingTitle ? (
                     <input
@@ -366,19 +407,35 @@ export function TaskDetailPanel({
                     )}
                   </div>
 
-                  {/* Subtasks */}
-                  <div>
-                    <label className="block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wide mb-1.5">Subtasky</label>
-                    <SubtaskList
-                      subtasks={task.subtasks || []}
-                      onToggle={onToggleSubtask}
-                      onDelete={onDeleteSubtask}
-                      onAdd={(title) => onAddSubtask(task.id, title)}
-                      onAddChild={(title, parentId) => onAddSubtask(task.id, title, parentId)}
-                      onUpdate={onUpdateSubtask}
-                      users={users}
-                    />
-                  </div>
+                  {/* Child Tasks (Subtasks as real tasks) */}
+                  <ChildTasksSection
+                    childTasks={childTasks}
+                    onAddChild={(title) => onAddChildTask(task.id, title)}
+                    onNavigate={onNavigateToTask}
+                    onToggleComplete={async (childId) => {
+                      const child = allTasks.find((t) => t.id === childId);
+                      if (child) {
+                        await onMoveTask(childId, child.status === 'done' ? 'todo' : 'done', 0);
+                      }
+                    }}
+                    onDelete={onDelete}
+                  />
+
+                  {/* Legacy subtasks (checklist) */}
+                  {task.subtasks && task.subtasks.length > 0 && (
+                    <div>
+                      <label className="block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wide mb-1.5">Checklist</label>
+                      <SubtaskList
+                        subtasks={task.subtasks}
+                        onToggle={onToggleSubtask}
+                        onDelete={onDeleteSubtask}
+                        onAdd={(title) => onAddSubtask(task.id, title)}
+                        onAddChild={(title, parentId) => onAddSubtask(task.id, title, parentId)}
+                        onUpdate={onUpdateSubtask}
+                        users={users}
+                      />
+                    </div>
+                  )}
 
                   {/* Attachments */}
                   <div>
@@ -419,5 +476,133 @@ export function TaskDetailPanel({
         onCancel={() => setShowDeleteConfirm(false)}
       />
     </>
+  );
+}
+
+// --- Child Tasks Section (subtasks as full tasks) ---
+
+import { Plus, Check as CheckIcon, ChevronRight } from 'lucide-react';
+
+function ChildTasksSection({
+  childTasks,
+  onAddChild,
+  onNavigate,
+  onToggleComplete,
+  onDelete,
+}: {
+  childTasks: Task[];
+  onAddChild: (title: string) => void;
+  onNavigate: (taskId: string) => void;
+  onToggleComplete: (taskId: string) => void;
+  onDelete: (taskId: string) => Promise<boolean>;
+}) {
+  const [newTitle, setNewTitle] = useState('');
+  const [showInput, setShowInput] = useState(false);
+
+  const handleAdd = () => {
+    if (newTitle.trim()) {
+      onAddChild(newTitle.trim());
+      setNewTitle('');
+    }
+  };
+
+  const completedCount = childTasks.filter((t) => t.status === 'done').length;
+  const progress = childTasks.length > 0 ? (completedCount / childTasks.length) * 100 : 0;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <label className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wide">
+          Subtasky ({completedCount}/{childTasks.length})
+        </label>
+        <button
+          onClick={() => setShowInput(!showInput)}
+          className="text-xs text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] transition-colors"
+        >
+          + Přidat
+        </button>
+      </div>
+
+      {/* Progress */}
+      {childTasks.length > 0 && (
+        <div className="h-1.5 bg-[var(--bg-surface-hover)] rounded-full mb-3 overflow-hidden">
+          <div
+            className="h-full bg-[var(--color-trust)] rounded-full transition-all duration-300"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      )}
+
+      {/* Child task list */}
+      <div className="space-y-1 mb-2">
+        {childTasks.map((child) => {
+          const isDone = child.status === 'done';
+          return (
+            <div
+              key={child.id}
+              className="flex items-center gap-2 p-2 rounded-lg hover:bg-[var(--bg-surface-hover)]/50 transition-colors group"
+            >
+              {/* Complete checkbox */}
+              <button
+                onClick={(e) => { e.stopPropagation(); onToggleComplete(child.id); }}
+                className={cn(
+                  'w-5 h-5 rounded border flex items-center justify-center transition-colors shrink-0',
+                  isDone
+                    ? 'bg-[var(--color-trust)] border-[var(--color-trust)]'
+                    : 'border-[var(--border-default)] hover:border-[var(--color-trust)]'
+                )}
+              >
+                {isDone && <CheckIcon className="w-3 h-3 text-white" />}
+              </button>
+
+              {/* Click to navigate */}
+              <button
+                onClick={() => onNavigate(child.id)}
+                className="flex-1 min-w-0 text-left flex items-center gap-2"
+              >
+                <span className={cn(
+                  'text-sm truncate',
+                  isDone ? 'text-[var(--text-muted)] line-through' : 'text-[var(--text-primary)]'
+                )}>
+                  {child.title}
+                </span>
+                {child.assignee && (
+                  <Avatar
+                    src={child.assignee.avatar_url}
+                    customSrc={child.assignee.custom_avatar_url}
+                    name={child.assignee.full_name}
+                    size="sm"
+                    className="shrink-0"
+                  />
+                )}
+                <ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-auto" />
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Add child task input */}
+      {showInput && (
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); if (e.key === 'Escape') setShowInput(false); }}
+            placeholder="Nový subtask..."
+            autoFocus
+            className="flex-1 px-3 py-1.5 bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-lg text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--color-primary)] transition-colors"
+          />
+          <button
+            onClick={handleAdd}
+            disabled={!newTitle.trim()}
+            className="p-1.5 rounded-lg bg-[var(--color-primary)] text-white disabled:opacity-30 hover:bg-[var(--color-primary-hover)] transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+    </div>
   );
 }

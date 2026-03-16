@@ -28,6 +28,7 @@ export function useTasks(filters?: TaskFilters) {
           assignee:users!tasks_assignee_id_fkey(*),
           creator:users!tasks_created_by_fkey(*),
           subtasks(*, assignee:users!subtasks_assignee_id_fkey(*)),
+          child_tasks:tasks!tasks_parent_task_id_fkey(*, assignee:users!tasks_assignee_id_fkey(*)),
           task_labels(label_id, labels(*))
         `)
         .order('position', { ascending: true });
@@ -366,7 +367,43 @@ export function useTasks(filters?: TaskFilters) {
   };
 
   const getTasksByStatus = (status: TaskStatus) =>
-    tasks.filter((t) => t.status === status).sort((a, b) => a.position - b.position);
+    tasks.filter((t) => t.status === status && !t.parent_task_id).sort((a, b) => a.position - b.position);
+
+  const getChildTasks = (parentTaskId: string) =>
+    tasks.filter((t) => t.parent_task_id === parentTaskId).sort((a, b) => a.position - b.position);
+
+  const addChildTask = async (parentTaskId: string, title: string) => {
+    const userId = await getUserId();
+    if (!userId) return null;
+
+    const parentTask = tasks.find((t) => t.id === parentTaskId);
+
+    const { data: maxPosData } = await supabase
+      .from('tasks')
+      .select('position')
+      .eq('parent_task_id', parentTaskId)
+      .order('position', { ascending: false })
+      .limit(1);
+
+    const position = maxPosData?.[0]?.position != null ? maxPosData[0].position + 1 : 0;
+
+    const { data, error } = await supabase
+      .from('tasks')
+      .insert({
+        title,
+        status: 'todo',
+        priority: parentTask?.priority || 'medium',
+        parent_task_id: parentTaskId,
+        created_by: userId,
+        position,
+      })
+      .select()
+      .single();
+
+    if (!error) fetchTasks();
+
+    return error ? null : data;
+  };
 
   return {
     tasks,
@@ -380,6 +417,8 @@ export function useTasks(filters?: TaskFilters) {
     toggleSubtask,
     deleteSubtask,
     getTasksByStatus,
+    getChildTasks,
+    addChildTask,
     refetch: fetchTasks,
   };
 }

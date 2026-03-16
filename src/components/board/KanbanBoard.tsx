@@ -39,6 +39,7 @@ export function KanbanBoard() {
     toggleSubtask,
     deleteSubtask,
     getTasksByStatus,
+    addChildTask,
   } = useTasks(filters);
   const { users } = useUsers();
 
@@ -177,6 +178,7 @@ export function KanbanBoard() {
       {/* Task Detail Panel */}
       <TaskDetailPanel
         task={selectedTask}
+        allTasks={tasks}
         isOpen={!!selectedTask}
         onClose={closeTask}
         onUpdate={updateTask}
@@ -186,6 +188,11 @@ export function KanbanBoard() {
         onUpdateSubtask={updateSubtask}
         onToggleSubtask={toggleSubtask}
         onDeleteSubtask={deleteSubtask}
+        onAddChildTask={addChildTask}
+        onNavigateToTask={(taskId) => {
+          const t = tasks.find((t) => t.id === taskId);
+          if (t) openTask(t);
+        }}
       />
 
       {/* Create Task Modal */}

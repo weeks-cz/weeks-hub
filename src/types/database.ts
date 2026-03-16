@@ -49,6 +49,7 @@ export interface Task {
   assignee_id: string | null;
   created_by: string;
   position: number;
+  parent_task_id: string | null;
   created_at: string;
   updated_at: string;
   // Joined fields
@@ -56,6 +57,7 @@ export interface Task {
   creator?: User;
   labels?: Label[];
   subtasks?: Subtask[];
+  child_tasks?: Task[];
   comments?: TaskComment[];
   attachments?: TaskAttachment[];
 }
