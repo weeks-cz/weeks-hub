@@ -14,7 +14,7 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS motto TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS custom_avatar_url TEXT;
 
 -- 3. Set Lukáš Kubík as developer (by email)
-UPDATE users SET role = 'developer' WHERE email = 'lukas@weeks.cz';
+UPDATE users SET role = 'developer' WHERE email = 'lukas.kubik@weeks.cz';
 
 -- 4. Admin RLS policies for user management
 -- Admin/developer can update other users' non-role fields
