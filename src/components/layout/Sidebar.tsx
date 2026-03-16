@@ -4,9 +4,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, Kanban, Calendar, Tent, FileText, BarChart3, User, LogOut } from 'lucide-react';
+import { LayoutDashboard, Kanban, Calendar, Tent, FileText, BarChart3, Shield, User, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useAuth } from '@/contexts/AuthContext';
+import { isAdmin } from '@/lib/utils/roles';
 import { NAV_ITEMS, ROUTES, APP_NAME } from '@/lib/utils/constants';
 
 const ICONS = {
@@ -60,6 +61,32 @@ export function Sidebar() {
             </Link>
           );
         })}
+
+        {/* Admin link — only for admin/developer */}
+        {isAdmin(user?.role) && (
+          <>
+            <div className="mx-3 my-2 border-t border-[var(--border-default)]" />
+            <Link
+              href={ROUTES.admin}
+              className={cn(
+                'relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
+                pathname.startsWith(ROUTES.admin)
+                  ? 'text-[var(--color-primary)]'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
+              )}
+            >
+              {pathname.startsWith(ROUTES.admin) && (
+                <motion.div
+                  layoutId="sidebar-active"
+                  className="absolute inset-0 rounded-xl bg-[var(--color-primary)]/10"
+                  transition={{ type: 'spring', duration: 0.4, bounce: 0.15 }}
+                />
+              )}
+              <Shield className="w-5 h-5 relative z-10" />
+              <span className="relative z-10">Admin</span>
+            </Link>
+          </>
+        )}
       </nav>
 
       {/* User Profile */}
@@ -73,8 +100,8 @@ export function Sidebar() {
               : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
           )}
         >
-          {user?.avatar_url ? (
-            <img src={user.avatar_url} alt="" className="w-6 h-6 rounded-full" />
+          {(user?.custom_avatar_url || user?.avatar_url) ? (
+            <img src={user.custom_avatar_url || user.avatar_url!} alt="" className="w-6 h-6 rounded-full object-cover" />
           ) : (
             <User className="w-5 h-5" />
           )}

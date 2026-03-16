@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'member';
+export type UserRole = 'developer' | 'admin' | 'member';
 export type TaskStatus = 'backlog' | 'todo' | 'in_progress' | 'review' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 export type EventType = 'camp' | 'meeting' | 'reminder' | 'deadline';
@@ -20,11 +20,24 @@ export interface User {
   email: string;
   full_name: string;
   avatar_url: string | null;
+  custom_avatar_url: string | null;
   role: UserRole;
   bio: string | null;
+  position: string | null;
+  phone: string | null;
+  favorite_sport: string | null;
+  favorite_color: string | null;
+  favorite_food: string | null;
+  motto: string | null;
   created_at: string;
   updated_at: string;
 }
+
+export const ROLE_CONFIG: Record<UserRole, { label: string; color: string }> = {
+  developer: { label: 'Developer', color: '#8B5CF6' },
+  admin: { label: 'Admin', color: '#6366F1' },
+  member: { label: 'Člen', color: '#64748B' },
+};
 
 export interface Task {
   id: string;

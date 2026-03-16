@@ -14,6 +14,8 @@ export const ROUTES = {
   camps: '/camps',
   formulare: '/formulare',
   analytics: '/analytics',
+  admin: '/admin',
+  adminUsers: '/admin/users',
   profile: '/profile',
   profileEdit: '/profile/edit',
 } as const;

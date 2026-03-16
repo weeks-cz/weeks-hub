@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Kanban, Calendar, Tent, FileText, BarChart3, User, X, LogOut } from 'lucide-react';
+import { LayoutDashboard, Kanban, Calendar, Tent, FileText, BarChart3, Shield, User, X, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useAuth } from '@/contexts/AuthContext';
+import { isAdmin } from '@/lib/utils/roles';
 import { NAV_ITEMS, ROUTES, APP_NAME } from '@/lib/utils/constants';
 
 const ICONS = {
@@ -74,6 +75,26 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
               </Link>
             );
           })}
+
+          {/* Admin link */}
+          {isAdmin(user?.role) && (
+            <>
+              <div className="mx-3 my-2 border-t border-[var(--border-default)]" />
+              <Link
+                href={ROUTES.admin}
+                onClick={onClose}
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150',
+                  pathname.startsWith(ROUTES.admin)
+                    ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
+                )}
+              >
+                <Shield className="w-5 h-5" />
+                Admin
+              </Link>
+            </>
+          )}
         </nav>
 
         <div className="border-t border-[var(--border-default)] p-3 space-y-1 absolute bottom-0 left-0 right-0">
@@ -82,8 +103,8 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
             onClick={onClose}
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors duration-150"
           >
-            {user?.avatar_url ? (
-              <img src={user.avatar_url} alt="" className="w-6 h-6 rounded-full" />
+            {(user?.custom_avatar_url || user?.avatar_url) ? (
+              <img src={user.custom_avatar_url || user.avatar_url!} alt="" className="w-6 h-6 rounded-full object-cover" />
             ) : (
               <User className="w-5 h-5" />
             )}
