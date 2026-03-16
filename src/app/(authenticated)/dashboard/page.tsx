@@ -57,66 +57,68 @@ export default function DashboardPage() {
         <QuickActions />
       </div>
 
-      {/* Mobile: Tasky first (order-1), then stats (order-2), then rest */}
-      <div className="flex flex-col gap-4 lg:contents">
-        {/* My Tasks — on mobile appears first */}
-        <div className="order-1 lg:order-none lg:hidden">
-          {tasksLoading ? (
-            <TaskListSkeleton />
-          ) : (
-            <MyTasks tasks={myTasks} />
-          )}
-        </div>
+      {/* === MOBILE LAYOUT (lg:hidden) === */}
+      <div className="lg:hidden space-y-4">
+        {/* 1. Tasky first */}
+        {tasksLoading ? <TaskListSkeleton /> : <MyTasks tasks={myTasks} />}
 
-        {/* Stats */}
-        <div className="order-2 lg:order-none">
-          {tasksLoading || eventsLoading || usersLoading ? (
-            <StatsCardsSkeleton />
-          ) : (
-            <StatsCards tasks={tasks} events={events} users={users} />
-          )}
-        </div>
+        {/* 2. Stats */}
+        {tasksLoading || eventsLoading || usersLoading ? (
+          <StatsCardsSkeleton />
+        ) : (
+          <StatsCards tasks={tasks} events={events} users={users} />
+        )}
+
+        {/* 3. Události */}
+        {eventsLoading ? <TaskListSkeleton /> : <UpcomingEvents events={upcomingEvents} />}
+
+        {/* 4. Tábory */}
+        {campsLoading ? <TaskListSkeleton /> : <CampsOverview camps={camps} />}
+
+        {/* 5. Formuláře */}
+        {submissionsLoading ? (
+          <TaskListSkeleton />
+        ) : (
+          <SubmissionsOverview submissions={submissions} newCount={newCount} />
+        )}
+
+        {/* 6. Tým */}
+        {tasksLoading || usersLoading ? (
+          <TaskListSkeleton />
+        ) : (
+          <TeamTasks tasks={tasks} users={users} currentUserId={user?.id} />
+        )}
       </div>
 
-      {/* Bento Grid — Desktop */}
-      <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-4">
-        {/* My Tasks — desktop (hidden on mobile, shown above instead) */}
-        <div className="hidden lg:block lg:row-span-2">
-          {tasksLoading ? (
-            <TaskListSkeleton />
-          ) : (
-            <MyTasks tasks={myTasks} />
-          )}
-        </div>
+      {/* === DESKTOP LAYOUT (hidden lg:block) === */}
+      <div className="hidden lg:block space-y-6">
+        {/* Stats */}
+        {tasksLoading || eventsLoading || usersLoading ? (
+          <StatsCardsSkeleton />
+        ) : (
+          <StatsCards tasks={tasks} events={events} users={users} />
+        )}
 
-        {/* Upcoming Events */}
-        <div>
-          {eventsLoading ? (
-            <TaskListSkeleton />
-          ) : (
-            <UpcomingEvents events={upcomingEvents} />
-          )}
-        </div>
+        {/* Bento Grid */}
+        <div className="grid grid-cols-[3fr_2fr] gap-4">
+          {/* My Tasks — spans 2 rows */}
+          <div className="row-span-2">
+            {tasksLoading ? <TaskListSkeleton /> : <MyTasks tasks={myTasks} />}
+          </div>
 
-        {/* Camps */}
-        <div>
-          {campsLoading ? (
-            <TaskListSkeleton />
-          ) : (
-            <CampsOverview camps={camps} />
-          )}
-        </div>
+          {/* Upcoming Events */}
+          {eventsLoading ? <TaskListSkeleton /> : <UpcomingEvents events={upcomingEvents} />}
 
-        {/* Bottom row: Submissions + Team */}
-        <div>
+          {/* Camps */}
+          {campsLoading ? <TaskListSkeleton /> : <CampsOverview camps={camps} />}
+
+          {/* Bottom row: Submissions + Team */}
           {submissionsLoading ? (
             <TaskListSkeleton />
           ) : (
             <SubmissionsOverview submissions={submissions} newCount={newCount} />
           )}
-        </div>
 
-        <div>
           {tasksLoading || usersLoading ? (
             <TaskListSkeleton />
           ) : (
