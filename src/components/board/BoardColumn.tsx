@@ -12,13 +12,14 @@ interface BoardColumnProps {
   tasks: Task[];
   onTaskClick: (task: Task) => void;
   onAddTask: (status: TaskStatus) => void;
+  onQuickComplete?: (taskId: string) => void;
 }
 
-export function BoardColumn({ id, title, tasks, onTaskClick, onAddTask }: BoardColumnProps) {
+export function BoardColumn({ id, title, tasks, onTaskClick, onAddTask, onQuickComplete }: BoardColumnProps) {
   return (
-    <div className="flex flex-col bg-[var(--bg-primary)] rounded-2xl border border-[var(--border-default)] min-w-[280px] w-[280px] max-h-[calc(100vh-160px)]">
+    <div className="flex flex-col bg-[var(--bg-primary)] rounded-2xl border border-[var(--border-default)] min-w-[280px] w-[280px] lg:min-w-[260px] lg:w-auto lg:flex-1 max-h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-default)]">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-default)] shrink-0">
         <div className="flex items-center gap-2">
           <h3 className="text-sm font-semibold text-[var(--text-primary)]">{title}</h3>
           <span className="px-2 py-0.5 bg-[var(--bg-surface-hover)] text-[var(--text-muted)] text-xs rounded-full">
@@ -51,6 +52,7 @@ export function BoardColumn({ id, title, tasks, onTaskClick, onAddTask }: BoardC
                 task={task}
                 index={index}
                 onClick={() => onTaskClick(task)}
+                onQuickComplete={onQuickComplete}
               />
             ))}
             {provided.placeholder}
