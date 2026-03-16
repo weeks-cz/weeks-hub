@@ -56,6 +56,8 @@ export interface Task {
   creator?: User;
   labels?: Label[];
   subtasks?: Subtask[];
+  comments?: TaskComment[];
+  attachments?: TaskAttachment[];
 }
 
 export interface Subtask {
@@ -64,6 +66,35 @@ export interface Subtask {
   title: string;
   completed: boolean;
   position: number;
+  assignee_id: string | null;
+  description: string | null;
+  parent_subtask_id: string | null;
+  created_at: string;
+  // Joined
+  assignee?: User | null;
+}
+
+export interface TaskComment {
+  id: string;
+  task_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  // Joined
+  user?: User;
+  attachments?: TaskAttachment[];
+}
+
+export interface TaskAttachment {
+  id: string;
+  task_id: string;
+  comment_id: string | null;
+  user_id: string;
+  file_name: string;
+  file_url: string;
+  file_size: number;
+  file_type: string;
   created_at: string;
 }
 

@@ -27,7 +27,7 @@ export function useTasks(filters?: TaskFilters) {
           *,
           assignee:users!tasks_assignee_id_fkey(*),
           creator:users!tasks_created_by_fkey(*),
-          subtasks(*),
+          subtasks(*, assignee:users!subtasks_assignee_id_fkey(*)),
           task_labels(label_id, labels(*))
         `)
         .order('position', { ascending: true });
@@ -306,7 +306,7 @@ export function useTasks(filters?: TaskFilters) {
   };
 
   // Subtask operations
-  const addSubtask = async (taskId: string, title: string) => {
+  const addSubtask = async (taskId: string, title: string, parentSubtaskId?: string) => {
     const userId = await getUserId();
     if (!userId) return null;
 
@@ -321,13 +321,29 @@ export function useTasks(filters?: TaskFilters) {
 
     const { data, error } = await supabase
       .from('subtasks')
-      .insert({ task_id: taskId, title, position })
+      .insert({
+        task_id: taskId,
+        title,
+        position,
+        parent_subtask_id: parentSubtaskId || null,
+      })
       .select()
       .single();
 
     if (!error) fetchTasks();
 
     return error ? null : data;
+  };
+
+  const updateSubtask = async (subtaskId: string, updates: { title?: string; assignee_id?: string | null; description?: string | null; completed?: boolean }) => {
+    const { error } = await supabase
+      .from('subtasks')
+      .update(updates)
+      .eq('id', subtaskId);
+
+    if (!error) fetchTasks();
+
+    return !error;
   };
 
   const toggleSubtask = async (subtaskId: string, completed: boolean) => {
@@ -360,6 +376,7 @@ export function useTasks(filters?: TaskFilters) {
     moveTask,
     deleteTask,
     addSubtask,
+    updateSubtask,
     toggleSubtask,
     deleteSubtask,
     getTasksByStatus,
