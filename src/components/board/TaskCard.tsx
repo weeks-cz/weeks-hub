@@ -45,21 +45,6 @@ export function TaskCard({ task, index, onClick, onQuickComplete }: TaskCardProp
             borderBottomColor: 'var(--border-default)',
           }}
         >
-          {/* Quick complete button — appears on hover */}
-          {onQuickComplete && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onQuickComplete(task.id); }}
-              className={cn(
-                'absolute top-2 left-2 w-5 h-5 rounded border flex items-center justify-center transition-all z-10',
-                isDone
-                  ? 'bg-[var(--color-trust)] border-[var(--color-trust)]'
-                  : 'border-[var(--border-default)] opacity-0 group-hover:opacity-100 hover:border-[var(--color-trust)] hover:bg-[var(--color-trust)]/10'
-              )}
-            >
-              {isDone && <Check className="w-3 h-3 text-white" />}
-            </button>
-          )}
-
           {/* Assignee avatar — top right */}
           {task.assignee && (
             <div className="absolute -top-1.5 -right-1.5 z-10">
@@ -95,6 +80,22 @@ export function TaskCard({ task, index, onClick, onQuickComplete }: TaskCardProp
 
           {/* Bottom row — meta info */}
           <div className="flex items-center gap-2 flex-wrap">
+            {/* Quick complete */}
+            {onQuickComplete && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onQuickComplete(task.id); }}
+                className={cn(
+                  'w-4 h-4 rounded border flex items-center justify-center transition-all shrink-0',
+                  isDone
+                    ? 'bg-[var(--color-trust)] border-[var(--color-trust)]'
+                    : 'border-[var(--text-muted)]/40 hover:border-[var(--color-trust)] hover:bg-[var(--color-trust)]/10'
+                )}
+                title={isDone ? 'Znovu otevřít' : 'Označit jako hotové'}
+              >
+                {isDone && <Check className="w-2.5 h-2.5 text-white" />}
+              </button>
+            )}
+
             {/* Due date */}
             {task.due_date && (
               <span className="flex items-center gap-1 text-xs text-[var(--text-muted)]">
