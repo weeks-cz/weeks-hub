@@ -25,13 +25,16 @@ export function Sidebar() {
 
   return (
     <aside className="hidden lg:flex flex-col w-[260px] h-screen bg-[var(--bg-surface)] border-r border-[var(--border-default)] fixed left-0 top-0 z-30">
-      {/* Logo */}
-      <div className="flex items-center gap-3 px-6 h-16 border-b border-[var(--border-default)] bg-gradient-to-r from-[var(--color-primary)]/5 to-transparent">
+      {/* Logo → Dashboard */}
+      <Link
+        href={ROUTES.dashboard}
+        className="flex items-center gap-3 px-6 h-16 border-b border-[var(--border-default)] bg-gradient-to-r from-[var(--color-primary)]/5 to-transparent hover:from-[var(--color-primary)]/10 transition-all duration-200"
+      >
         <Image src="/weeks-logo.png" alt="Weeks" width={36} height={36} className="rounded-lg" />
         <span className="text-lg font-semibold text-gradient font-[family-name:var(--font-heading)]">
           {APP_NAME}
         </span>
-      </div>
+      </Link>
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1">

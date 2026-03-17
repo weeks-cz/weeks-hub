@@ -1,9 +1,12 @@
 'use client';
 
+import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Menu } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { NotificationBell } from '@/components/layout/NotificationBell';
+import { ROUTES } from '@/lib/utils/constants';
 
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard',
@@ -37,6 +40,9 @@ export function Header({ onMenuToggle }: HeaderProps) {
         >
           <Menu className="w-5 h-5" />
         </button>
+        <Link href={ROUTES.dashboard} className="lg:hidden flex items-center">
+          <Image src="/weeks-logo.png" alt="Weeks" width={28} height={28} className="rounded-lg" />
+        </Link>
         <h1 className="text-xl font-semibold text-[var(--text-primary)] font-[family-name:var(--font-heading)]">
           {title}
         </h1>
@@ -45,22 +51,22 @@ export function Header({ onMenuToggle }: HeaderProps) {
       <div className="flex items-center gap-2">
         <NotificationBell />
         {user && (
-          <div className="flex items-center gap-2 ml-1">
-            <span className="text-sm text-[var(--text-secondary)] hidden sm:block">
+          <Link href={ROUTES.profile} className="flex items-center gap-2 ml-1 group">
+            <span className="text-sm text-[var(--text-secondary)] hidden sm:block group-hover:text-[var(--text-primary)] transition-colors">
               {user.full_name}
             </span>
             {avatarSrc ? (
               <img
                 src={avatarSrc}
                 alt={user.full_name}
-                className="w-8 h-8 rounded-full border-2 border-[var(--border-default)] object-cover"
+                className="w-8 h-8 rounded-full border-2 border-[var(--border-default)] group-hover:border-[var(--color-primary)] object-cover transition-colors"
               />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-[var(--color-primary)] flex items-center justify-center text-xs font-medium text-white">
+              <div className="w-8 h-8 rounded-full bg-[var(--color-primary)] group-hover:bg-[var(--color-primary-hover)] flex items-center justify-center text-xs font-medium text-white transition-colors">
                 {user.full_name?.charAt(0) || '?'}
               </div>
             )}
-          </div>
+          </Link>
         )}
       </div>
     </header>
