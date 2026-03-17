@@ -26,6 +26,8 @@ Google Analytics a Meta Ads přehledy přímo v aplikaci.
   - `sync-camps/route.ts` - sync táborů z weeks.cz + enrollment notifikace
 - `src/components/` - komponenty (ui/, board/, calendar/, dashboard/, layout/, shared/, analytics/, admin/, profile/)
 - `src/components/board/` - TaskDetailPanel (slide-over drawer), CommentList, CommentInput, AttachmentList, FileUploadZone, SubtaskList
+- `src/components/layout/Header.tsx` - top bar s page title, notifikace, PFP→profil link, logo→dashboard (mobile)
+- `src/components/layout/Sidebar.tsx` - navigace, logo→dashboard link, profil link, odhlášení
 - `src/hooks/` - custom hooks:
   - `useTasks` - kanban úkoly s drag&drop, child tasks (nested subtasks), subtask CRUD
   - `useTaskComments` - komentáře s realtime a @mention notifikacemi
@@ -62,11 +64,14 @@ Tabulky: users, tasks, subtasks, labels, task_labels, calendar_events, event_att
 - Admin link v sidebaru podmíněn `isAdmin(user.role)`
 
 ## Auth
-- Google OAuth přes Supabase Auth
+- Google OAuth přes Supabase Auth (primární, doporučená metoda)
+- Magic link (email OTP) jako sekundární metoda — schovaný pod collapsible v login UI
+- **Custom SMTP:** Resend (smtp.resend.com) přes ověřenou doménu weeks.cz, sender `noreply@weeks.cz`
 - Omezeno na @weeks.cz emaily (middleware + RLS)
 - Auto-vytvoření profilu při prvním přihlášení (DB trigger)
 - **AuthGuard** v authenticated layout blokuje render dokud auth stav není resolved
 - **DŮLEŽITÉ:** V `onAuthStateChange` callbacku NIKDY nevolat Supabase queries (způsobuje deadlock). Profil fetchovat v separátním useEffect.
+- **DŮLEŽITÉ:** Magic link + PWA nefunguje (PKCE verifier je v jiném browser kontextu). Error stránka na to upozorňuje a nabízí Google login.
 
 ## Board (Asana-like)
 - **TaskDetailPanel** — slide-over drawer zprava (ne modal), s inline editací všech polí
@@ -132,3 +137,6 @@ npx tsc --noEmit # TypeScript check (preferovaný způsob ověření před push)
 - [x] Role systém (developer/admin/member) + Admin sekce
 - [x] In-app notifikace (bell icon, task assignment, form submissions, camp enrollment)
 - [x] Google Analytics + Meta campaigns dashboards
+- [x] Custom SMTP (Resend + weeks.cz doména) pro spolehlivé auth emaily
+- [x] Login UX: Google jako doporučený, magic link collapsible, error page s PWA tipem
+- [x] Navigační shortcuty: PFP → profil, logo → dashboard
