@@ -13,10 +13,15 @@ export function EventCard({ event, compact = false, onClick }: EventCardProps) {
   const config = EVENT_TYPE_CONFIG[event.event_type];
   const color = event.color || config.color;
 
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onClick?.();
+  };
+
   if (compact) {
     return (
       <button
-        onClick={onClick}
+        onClick={handleClick}
         className="w-full text-left px-1.5 py-0.5 rounded text-xs font-medium truncate hover:opacity-80 transition-opacity"
         style={{ backgroundColor: `${color}20`, color }}
       >
@@ -27,7 +32,7 @@ export function EventCard({ event, compact = false, onClick }: EventCardProps) {
 
   return (
     <button
-      onClick={onClick}
+      onClick={handleClick}
       className="w-full text-left p-3 rounded-xl border transition-all duration-200 hover:shadow-lg hover:-translate-y-[1px]"
       style={{
         backgroundColor: `${color}10`,

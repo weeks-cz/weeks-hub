@@ -24,10 +24,17 @@ function toDateString(iso: string): string {
   return iso.split('T')[0];
 }
 
-// Helper to extract time part (HH:MM) from ISO string
+// Helper to extract time part (HH:MM) from ISO string (local timezone)
 function toTimeString(iso: string): string {
   const date = new Date(iso);
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+}
+
+// Helper to construct a proper ISO string from local date/time components
+function localToISO(dateStr: string, timeStr: string): string {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  return new Date(year, month - 1, day, hours, minutes, 0).toISOString();
 }
 
 export function EventDetailModal({ event, isOpen, onClose, onUpdate, onDelete }: EventDetailModalProps) {
@@ -71,11 +78,11 @@ export function EventDetailModal({ event, isOpen, onClose, onUpdate, onDelete }:
     let end_date: string | null;
 
     if (allDay) {
-      start_date = `${startDate}T12:00:00`;
-      end_date = endDate ? `${endDate}T12:00:00` : null;
+      start_date = localToISO(startDate, '12:00');
+      end_date = endDate ? localToISO(endDate, '12:00') : null;
     } else {
-      start_date = `${startDate}T${startTime}:00`;
-      end_date = endDate ? `${endDate}T${endTime}:00` : null;
+      start_date = localToISO(startDate, startTime);
+      end_date = endDate ? localToISO(endDate, endTime) : null;
     }
 
     await onUpdate(event.id, {

@@ -7,6 +7,13 @@ import { Input, Textarea } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { EVENT_TYPE_CONFIG, type EventType } from '@/types/database';
 
+// Helper to construct a proper ISO string from local date/time components
+function localToISO(dateStr: string, timeStr: string): string {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  return new Date(year, month - 1, day, hours, minutes, 0).toISOString();
+}
+
 interface CreateEventModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -38,9 +45,9 @@ export function CreateEventModal({ isOpen, onClose, onSubmit, defaultDate }: Cre
 
     setIsSubmitting(true);
 
-    const start = allDay ? `${startDate}T12:00:00` : `${startDate}T${startTime}:00`;
+    const start = allDay ? localToISO(startDate, '12:00') : localToISO(startDate, startTime);
     const end = endDate
-      ? allDay ? `${endDate}T12:00:00` : `${endDate}T${endTime}:00`
+      ? allDay ? localToISO(endDate, '12:00') : localToISO(endDate, endTime)
       : null;
 
     await onSubmit({
