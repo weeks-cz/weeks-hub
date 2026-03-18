@@ -66,33 +66,46 @@ export function useTaskComments(taskId: string | null) {
     }
 
     // Notify mentioned users
-    const mentionRegex = /@(\S+(?:\s\S+)?)/g;
-    let match;
-    while ((match = mentionRegex.exec(content)) !== null) {
-      const mentionName = match[1];
-      const mentionedUser = users.find(
-        (u) => u.full_name.toLowerCase().startsWith(mentionName.toLowerCase())
-      );
-      if (mentionedUser && mentionedUser.id !== user.id) {
-        createNotification({
-          userId: mentionedUser.id,
+    if (users.length > 0) {
+      const mentionRegex = /@(\S+(?:\s\S+)?)/g;
+      let match;
+      const notifiedUserIds = new Set<string>();
+      while ((match = mentionRegex.exec(content)) !== null) {
+        const mentionName = match[1];
+        const mentionedUser = users.find(
+          (u) =>
+            u.full_name?.toLowerCase().startsWith(mentionName.toLowerCase())
+        );
+        if (
+          mentionedUser &&
+          mentionedUser.id !== user.id &&
+          !notifiedUserIds.has(mentionedUser.id)
+        ) {
+          notifiedUserIds.add(mentionedUser.id);
+          await createNotification({
+            userId: mentionedUser.id,
+            type: 'task_assigned',
+            title: 'Zmíněn/a v komentáři',
+            message: `${user.full_name} tě zmínil/a: "${content.slice(0, 80)}${content.length > 80 ? '...' : ''}"`,
+            link: `/board?task=${taskId}`,
+          });
+        }
+      }
+
+      // Notify assignee about new comment (if not the commenter and not already notified via mention)
+      if (
+        taskAssigneeId &&
+        taskAssigneeId !== user.id &&
+        !notifiedUserIds.has(taskAssigneeId)
+      ) {
+        await createNotification({
+          userId: taskAssigneeId,
           type: 'task_assigned',
-          title: 'Zmíněn/a v komentáři',
-          message: `${user.full_name} tě zmínil/a: "${content.slice(0, 80)}${content.length > 80 ? '...' : ''}"`,
+          title: 'Nový komentář',
+          message: `${user.full_name} okomentoval/a task: "${content.slice(0, 80)}${content.length > 80 ? '...' : ''}"`,
           link: `/board?task=${taskId}`,
         });
       }
-    }
-
-    // Notify assignee about new comment (if not the commenter)
-    if (taskAssigneeId && taskAssigneeId !== user.id) {
-      createNotification({
-        userId: taskAssigneeId,
-        type: 'task_assigned',
-        title: 'Nový komentář',
-        message: `${user.full_name} okomentoval/a task: "${content.slice(0, 80)}${content.length > 80 ? '...' : ''}"`,
-        link: `/board?task=${taskId}`,
-      });
     }
 
     fetchComments();

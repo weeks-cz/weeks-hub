@@ -84,13 +84,16 @@ export async function createNotification(params: {
   link?: string;
 }) {
   const supabase = createClient();
-  await supabase.from('notifications').insert({
+  const { error } = await supabase.from('notifications').insert({
     user_id: params.userId,
     type: params.type,
     title: params.title,
     message: params.message,
     link: params.link || null,
   });
+  if (error) {
+    console.error('Failed to create notification:', error);
+  }
 }
 
 // Helper to notify all admins/developers
