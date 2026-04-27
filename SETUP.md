@@ -104,6 +104,20 @@ npm run dev
 
 ---
 
+## Weeks-iot Supabase (learning stats)
+
+Add to `.env.local` (never commit):
+
+```
+WEEKS_IOT_SUPABASE_URL=https://izrskvooxsdyzwqrwhev.supabase.co
+WEEKS_IOT_SUPABASE_SERVICE_ROLE_KEY=<service_role key from Supabase dashboard>
+```
+
+Used by `/admin/learning` and `/admin/learning/users` to read learning stats
+from the weeks-iot project via service-role (bypasses RLS).
+
+---
+
 ## Technologie
 - Next.js 16 (App Router, TypeScript)
 - Tailwind CSS v4
