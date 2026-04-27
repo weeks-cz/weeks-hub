@@ -73,12 +73,12 @@ export function Sidebar() {
               href={ROUTES.admin}
               className={cn(
                 'relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
-                pathname.startsWith(ROUTES.admin)
+                pathname.startsWith(ROUTES.admin) && !pathname.startsWith('/admin/learning')
                   ? 'text-[var(--color-primary)]'
                   : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
               )}
             >
-              {pathname.startsWith(ROUTES.admin) && (
+              {pathname.startsWith(ROUTES.admin) && !pathname.startsWith('/admin/learning') && (
                 <motion.div
                   layoutId="sidebar-active"
                   className="absolute inset-0 rounded-xl bg-[var(--color-primary)]/10"

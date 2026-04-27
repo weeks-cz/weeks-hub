@@ -26,11 +26,13 @@ async function fetchUsers(): Promise<UserRow[]> {
 
   const userIds = accounts.map((a) => a.id as string);
 
-  const { data: authUsers } = await iot.auth.admin.listUsers({ perPage: 1000 });
   const emailById = new Map<string, string>();
-  for (const u of authUsers?.users ?? []) {
-    if (userIds.includes(u.id)) emailById.set(u.id, u.email ?? '—');
-  }
+  await Promise.all(
+    userIds.map(async (id) => {
+      const { data } = await iot.auth.admin.getUserById(id);
+      if (data?.user) emailById.set(id, data.user.email ?? '—');
+    })
+  );
 
   const { data: signups } = await iot
     .from('learning_events')
