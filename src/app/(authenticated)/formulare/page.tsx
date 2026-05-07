@@ -70,7 +70,7 @@ export default function FormularePage() {
               Formuláře
             </h2>
             <p className="text-sm text-[var(--text-muted)]">
-              Waitlist a kontaktní formuláře z weeks.cz
+              Waitlist, kontaktní formuláře a zájmy z e-shopu
             </p>
           </div>
         </div>
@@ -118,7 +118,7 @@ export default function FormularePage() {
         </div>
 
         {/* Program filter (only when waitlist visible) */}
-        {typeFilter !== 'contact' && (
+        {(typeFilter === 'all' || typeFilter === 'waitlist') && (
           <select
             value={programFilter}
             onChange={(e) => setProgramFilter(e.target.value)}

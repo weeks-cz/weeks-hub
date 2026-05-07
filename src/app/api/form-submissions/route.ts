@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 const VALID_PROGRAMS = ['mix', 'mix-leto', '3d-tisk', 'iot', 'blender', 'web', 'hry', 'csharp', 'nevim'];
+const VALID_PRODUCT_TYPES = ['set', 'upgrade-kit', 'project'];
 
 export async function POST(request: NextRequest) {
   // Verify API key
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { form_type } = body;
 
-    if (!form_type || !['waitlist', 'contact'].includes(form_type)) {
+    if (!form_type || !['waitlist', 'contact', 'shop_interest'].includes(form_type)) {
       return NextResponse.json({ error: 'Invalid form_type' }, { status: 400 });
     }
 
@@ -46,8 +47,7 @@ export async function POST(request: NextRequest) {
         console.error('Form submission insert error:', error);
         return NextResponse.json({ error: 'Failed to save submission' }, { status: 500 });
       }
-    } else {
-      // contact
+    } else if (form_type === 'contact') {
       if (!body.sender_name || !body.message) {
         return NextResponse.json({ error: 'Name and message are required for contact form' }, { status: 400 });
       }
@@ -63,6 +63,27 @@ export async function POST(request: NextRequest) {
         console.error('Form submission insert error:', error);
         return NextResponse.json({ error: 'Failed to save submission' }, { status: 500 });
       }
+    } else {
+      // shop_interest
+      if (!body.product_slug || !body.product_name || !body.product_type || !VALID_PRODUCT_TYPES.includes(body.product_type)) {
+        return NextResponse.json({ error: 'Invalid product interest payload' }, { status: 400 });
+      }
+
+      const { error } = await supabase.from('form_submissions').insert({
+        form_type: 'shop_interest',
+        email: body.email,
+        sender_name: body.sender_name || null,
+        message: body.message || null,
+        gdpr_consent: body.gdpr_consent ?? null,
+        product_slug: body.product_slug,
+        product_name: body.product_name,
+        product_type: body.product_type,
+      });
+
+      if (error) {
+        console.error('Form submission insert error:', error);
+        return NextResponse.json({ error: 'Failed to save submission' }, { status: 500 });
+      }
     }
 
     // Notify admins/developers about new submission
@@ -72,7 +93,7 @@ export async function POST(request: NextRequest) {
       .in('role', ['admin', 'developer']);
 
     if (admins && admins.length > 0) {
-      const typeLabel = form_type === 'waitlist' ? 'Waitlist' : 'Kontakt';
+      const typeLabel = form_type === 'waitlist' ? 'Waitlist' : form_type === 'contact' ? 'Kontakt' : 'E-shop zájem';
       await supabase.from('notifications').insert(
         admins.map((admin) => ({
           user_id: admin.id,

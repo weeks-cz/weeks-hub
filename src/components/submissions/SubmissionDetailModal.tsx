@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Mail, Baby, BookOpen, MessageSquare, User, Clock, CheckCircle, Archive, Trash2 } from 'lucide-react';
+import { X, Mail, Baby, BookOpen, MessageSquare, User, Clock, CheckCircle, Archive, Trash2, Package } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { formatDateTime, formatRelative } from '@/lib/utils/date';
@@ -132,6 +132,47 @@ export function SubmissionDetailModal({
                         <div className="text-sm text-[var(--text-primary)]">
                           {submission.program ? (PROGRAM_CONFIG[submission.program] || submission.program) : '(neuvedeno)'}
                         </div>
+                      </div>
+                    </div>
+                  </>
+                ) : submission.form_type === 'shop_interest' ? (
+                  <>
+                    <div className="flex items-center gap-3">
+                      <User className="w-4 h-4 text-[var(--text-muted)] shrink-0" />
+                      <div>
+                        <div className="text-xs text-[var(--text-muted)]">Zákazník</div>
+                        <div className="text-sm text-[var(--text-primary)]">{submission.sender_name || '(neuvedeno)'}</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <Package className="w-4 h-4 text-[var(--text-muted)] shrink-0" />
+                      <div>
+                        <div className="text-xs text-[var(--text-muted)]">Produkt</div>
+                        <div className="text-sm text-[var(--text-primary)]">
+                          {submission.product_name || '(neuvedeno)'}
+                          {submission.product_slug ? (
+                            <span className="text-[var(--text-muted)]"> · {submission.product_slug}</span>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+
+                    {submission.product_type && (
+                      <div className="flex items-center gap-3">
+                        <BookOpen className="w-4 h-4 text-[var(--text-muted)] shrink-0" />
+                        <div>
+                          <div className="text-xs text-[var(--text-muted)]">Typ produktu</div>
+                          <div className="text-sm text-[var(--text-primary)]">{submission.product_type}</div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-start gap-3">
+                      <MessageSquare className="w-4 h-4 text-[var(--text-muted)] shrink-0 mt-0.5" />
+                      <div>
+                        <div className="text-xs text-[var(--text-muted)]">Poznámka</div>
+                        <div className="text-sm text-[var(--text-primary)] whitespace-pre-wrap">{submission.message || '(bez poznámky)'}</div>
                       </div>
                     </div>
                   </>

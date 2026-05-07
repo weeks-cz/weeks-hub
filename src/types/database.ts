@@ -3,8 +3,9 @@ export type TaskStatus = 'backlog' | 'todo' | 'in_progress' | 'review' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 export type EventType = 'camp' | 'meeting' | 'reminder' | 'deadline';
 export type CampStatus = 'collecting_interest' | 'open_no_link' | 'open_with_link' | 'full' | 'closed';
-export type FormSubmissionType = 'waitlist' | 'contact';
+export type FormSubmissionType = 'waitlist' | 'contact' | 'shop_interest';
 export type FormSubmissionStatus = 'new' | 'processed' | 'archived';
+export type ShopProductType = 'set' | 'upgrade-kit' | 'project';
 
 export type ActionType =
   | 'task_created' | 'task_updated' | 'task_moved' | 'task_deleted'
@@ -12,8 +13,9 @@ export type ActionType =
   | 'event_created' | 'event_updated' | 'event_deleted'
   | 'camp_created' | 'camp_updated' | 'camp_deleted' | 'camp_enrollment_changed'
   | 'submission_processed' | 'submission_archived' | 'submission_deleted' | 'submission_note_added'
+  | 'shop_product_created' | 'shop_product_updated' | 'shop_product_deleted'
   | 'user_updated';
-export type EntityType = 'task' | 'subtask' | 'event' | 'camp' | 'form_submission' | 'user';
+export type EntityType = 'task' | 'subtask' | 'event' | 'camp' | 'form_submission' | 'shop_product' | 'user';
 
 export interface User {
   id: string;
@@ -154,6 +156,35 @@ export interface Camp {
   creator?: User;
 }
 
+export interface ShopProduct {
+  id: string;
+  slug: string;
+  name: string;
+  subtitle: string;
+  type: ShopProductType;
+  price: number;
+  age_range: string;
+  level: string;
+  lead_time: string;
+  image_url: string;
+  description: string;
+  long_description: string;
+  includes: string[];
+  highlights: string[];
+  ideal_for: string[];
+  projects: string[];
+  badge: string;
+  category_label: string;
+  unlocks: string;
+  compatibility: string | null;
+  published: boolean;
+  sort_order: number;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  creator?: User | null;
+}
+
 export interface ActivityLog {
   id: string;
   user_id: string;
@@ -233,6 +264,10 @@ export interface FormSubmission {
   // Contact fields
   sender_name: string | null;
   message: string | null;
+  // Shop interest fields
+  product_slug: string | null;
+  product_name: string | null;
+  product_type: ShopProductType | null;
   // Workflow
   status: FormSubmissionStatus;
   notes: string | null;
@@ -247,6 +282,13 @@ export interface FormSubmission {
 export const FORM_TYPE_CONFIG: Record<FormSubmissionType, { label: string; color: string }> = {
   waitlist: { label: 'Waitlist', color: '#8B5CF6' },
   contact: { label: 'Kontakt', color: '#3B82F6' },
+  shop_interest: { label: 'E-shop zájem', color: '#10B981' },
+};
+
+export const SHOP_PRODUCT_TYPE_CONFIG: Record<ShopProductType, { label: string; color: string }> = {
+  set: { label: 'Celá sada', color: '#3B82F6' },
+  'upgrade-kit': { label: 'Navazující kit', color: '#F59E0B' },
+  project: { label: 'Samostatný projekt', color: '#10B981' },
 };
 
 export const FORM_STATUS_CONFIG: Record<FormSubmissionStatus, { label: string; color: string }> = {
