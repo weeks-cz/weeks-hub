@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, Kanban, Calendar, Tent, FileText, BarChart3, Shield, GraduationCap, User, LogOut } from 'lucide-react';
+import { LayoutDashboard, Kanban, Calendar, Tent, FileText, BarChart3, Shield, GraduationCap, User, LogOut, Package } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useAuth } from '@/contexts/AuthContext';
 import { isAdmin } from '@/lib/utils/roles';
@@ -15,6 +15,7 @@ const ICONS = {
   Kanban,
   Calendar,
   Tent,
+  Package,
   FileText,
   BarChart3,
 } as const;

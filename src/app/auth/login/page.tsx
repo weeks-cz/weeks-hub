@@ -3,13 +3,16 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
-import { Mail, Loader2, CheckCircle, ArrowRight, ChevronDown, AlertTriangle, Clock } from 'lucide-react';
+import { Mail, Loader2, CheckCircle, ArrowRight, ChevronDown, AlertTriangle, Clock, Lock } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSent, setIsSent] = useState(false);
   const [error, setError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [showPasswordLogin, setShowPasswordLogin] = useState(false);
   const [showMagicLink, setShowMagicLink] = useState(false);
   const [cooldown, setCooldown] = useState(0);
 
@@ -24,6 +27,31 @@ export default function LoginPage() {
         return prev - 1;
       });
     }, 1000);
+  };
+
+  const handlePasswordLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError('');
+
+    if (!email.endsWith('@weeks.cz')) {
+      setPasswordError('Přihlášení je povoleno pouze pro @weeks.cz emaily.');
+      return;
+    }
+
+    setIsLoading(true);
+    const supabase = createClient();
+    const { error: passwordLoginError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    setIsLoading(false);
+
+    if (passwordLoginError) {
+      setPasswordError('Email nebo heslo nesedí.');
+      return;
+    }
+
+    window.location.href = '/';
   };
 
   const handleMagicLink = async (e: React.FormEvent) => {
@@ -195,10 +223,86 @@ export default function LoginPage() {
                 </p>
               </div>
 
+              {/* Password login — no redirect, useful for local development */}
+              <div className="mt-6">
+                <button
+                  onClick={() => {
+                    setShowPasswordLogin(!showPasswordLogin);
+                    setShowMagicLink(false);
+                    setPasswordError('');
+                  }}
+                  className="w-full flex items-center justify-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors py-2"
+                >
+                  <div className="flex-1 border-t border-[var(--border-default)]" />
+                  <span className="px-2 flex items-center gap-1.5">
+                    Přihlásit heslem
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showPasswordLogin ? 'rotate-180' : ''}`} />
+                  </span>
+                  <div className="flex-1 border-t border-[var(--border-default)]" />
+                </button>
+
+                {showPasswordLogin && (
+                  <form onSubmit={handlePasswordLogin} className="space-y-3 mt-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="relative">
+                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-muted)]" />
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="jmeno@weeks.cz"
+                        required
+                        className="w-full pl-11 pr-4 py-3 bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-xl text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/50 focus:border-[var(--color-primary)] transition-all"
+                      />
+                    </div>
+
+                    <div className="relative">
+                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-muted)]" />
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Heslo"
+                        required
+                        className="w-full pl-11 pr-4 py-3 bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-xl text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/50 focus:border-[var(--color-primary)] transition-all"
+                      />
+                    </div>
+
+                    {passwordError && (
+                      <div className="flex items-start gap-2 p-2.5 bg-[var(--color-error)]/5 border border-[var(--color-error)]/20 rounded-lg">
+                        <AlertTriangle className="w-4 h-4 text-[var(--color-error)] mt-0.5 shrink-0" />
+                        <p className="text-sm text-[var(--color-error)]">{passwordError}</p>
+                      </div>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] text-[var(--text-primary)] font-medium rounded-xl transition-all duration-200 disabled:opacity-50"
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          Přihlašuji...
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="w-4 h-4" />
+                          Přihlásit se
+                        </>
+                      )}
+                    </button>
+                  </form>
+                )}
+              </div>
+
               {/* Collapsible magic link section */}
               <div className="mt-6">
                 <button
-                  onClick={() => setShowMagicLink(!showMagicLink)}
+                  onClick={() => {
+                    setShowMagicLink(!showMagicLink);
+                    setShowPasswordLogin(false);
+                    setError('');
+                  }}
                   className="w-full flex items-center justify-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors py-2"
                 >
                   <div className="flex-1 border-t border-[var(--border-default)]" />

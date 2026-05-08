@@ -35,7 +35,7 @@ export async function updateSession(request: NextRequest) {
   const user = session?.user ?? null;
 
   // Public routes
-  const publicPaths = ['/auth/login', '/auth/callback', '/auth/error', '/api/form-submissions'];
+  const publicPaths = ['/auth/login', '/auth/callback', '/auth/error', '/api/form-submissions', '/api/shop/products'];
   const isPublicPath = publicPaths.some(path =>
     request.nextUrl.pathname.startsWith(path)
   );
