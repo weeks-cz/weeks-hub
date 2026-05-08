@@ -12,6 +12,7 @@ import { createClient } from '@/lib/supabase/client';
 import type { ShopProduct, ShopProductType } from '@/types/database';
 import { SHOP_PRODUCT_TYPE_CONFIG } from '@/types/database';
 import type { ShopProductInput } from '@/hooks/useShopProducts';
+import { DEFAULT_SHOP_PRODUCT_IMAGE_URL, getSafeShopProductImageUrl } from '@/lib/shopProductImages';
 
 interface ShopProductModalProps {
   product: ShopProduct | null;
@@ -31,7 +32,7 @@ const blankProduct: ShopProductInput = {
   age_range: '',
   level: '',
   lead_time: 'Sbíráme zájem',
-  image_url: '',
+  image_url: DEFAULT_SHOP_PRODUCT_IMAGE_URL,
   description: '',
   long_description: '',
   includes: [],
@@ -101,7 +102,7 @@ export function ShopProductModal({
           age_range: product.age_range,
           level: product.level,
           lead_time: product.lead_time,
-          image_url: product.image_url,
+          image_url: getSafeShopProductImageUrl(product.image_url),
           description: product.description,
           long_description: product.long_description,
           includes: product.includes,

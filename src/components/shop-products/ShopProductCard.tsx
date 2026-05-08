@@ -3,6 +3,7 @@
 import { Eye, EyeOff } from 'lucide-react';
 import type { ShopProduct } from '@/types/database';
 import { SHOP_PRODUCT_TYPE_CONFIG } from '@/types/database';
+import { getSafeShopProductImageUrl } from '@/lib/shopProductImages';
 
 interface ShopProductCardProps {
   product: ShopProduct;
@@ -11,6 +12,7 @@ interface ShopProductCardProps {
 
 export function ShopProductCard({ product, onClick }: ShopProductCardProps) {
   const typeConfig = SHOP_PRODUCT_TYPE_CONFIG[product.type];
+  const imageUrl = getSafeShopProductImageUrl(product.image_url);
 
   return (
     <button
@@ -19,9 +21,9 @@ export function ShopProductCard({ product, onClick }: ShopProductCardProps) {
       className="w-full overflow-hidden rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] text-left transition-all duration-200 hover:-translate-y-[1px] hover:shadow-lg"
     >
       <div className="relative aspect-[16/9] bg-[var(--bg-primary)]">
-        {product.image_url ? (
+        {imageUrl ? (
           <img
-            src={product.image_url}
+            src={imageUrl}
             alt={product.name}
             className="h-full w-full object-cover"
           />

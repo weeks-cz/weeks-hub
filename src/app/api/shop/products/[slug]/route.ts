@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getSafeShopProductImageUrl } from '@/lib/shopProductImages';
 import type { ShopProduct } from '@/types/database';
 
 function toPublicProduct(product: ShopProduct) {
@@ -11,7 +12,7 @@ function toPublicProduct(product: ShopProduct) {
     ageRange: product.age_range,
     level: product.level,
     leadTime: product.lead_time,
-    image: product.image_url,
+    image: getSafeShopProductImageUrl(product.image_url),
     description: product.description,
     longDescription: product.long_description,
     includes: product.includes,
