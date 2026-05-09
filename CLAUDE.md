@@ -140,3 +140,23 @@ npx tsc --noEmit # TypeScript check (preferovaný způsob ověření před push)
 - [x] Custom SMTP (Resend + weeks.cz doména) pro spolehlivé auth emaily
 - [x] Login UX: Google jako doporučený, magic link collapsible, error page s PWA tipem
 - [x] Navigační shortcuty: PFP → profil, logo → dashboard
+
+## Repo & team workflow
+
+- **GitHub**: `weeks-cz/weeks-hub` (public, transferred from lxkask/weeks-hub on 2026-05-09).
+- **Org**: `weeks-cz` (free, owned by Lukáš). Owners: Lukáš (lukoluko8), Štěpán (step4n), Kryštof (jezdikk), admin@weeks.cz.
+- **Sister repos**: `weeks-cz/weeks` (weeks.cz), `weeks-cz/weeks-iot` (iot.weeks.cz + klicenka.weeks.cz). All public, code-only.
+- **Strategic docs**: live in private repo `weeks-cz/weeks-internal` under `hub/docs/` + `hub/SETUP.md`. Plans, specs, Supabase setup notes moved there 2026-05-09. **Do not commit business strategy or Supabase URLs/keys here** — this repo is now public.
+- **Deploys**: Vercel auto-deploys `main` branch to app.weeks.cz on push.
+- **Vercel Hobby author block**: Free tier rejects deployments when commit author is not Lukáš (lukoluko8@gmail.com). Commits by step4n or jezdikk hit error: *"Git author X must have access to the project on Vercel"*.
+  - **Workaround until Vercel Pro upgrade ($20/mo, deferred until s.r.o.)**: Lukáš (or Claude) squashes Š/K feature branches into a single Lukáš-authored commit on main:
+    ```bash
+    cd <fresh-clone>
+    git checkout main && git pull
+    git read-tree -u --reset <feature-branch>
+    git -c user.email=lukoluko8@gmail.com commit \
+      --author="Lukáš Kubík <lukoluko8@gmail.com>" \
+      -m "feat(...): squashed <feature-branch>"
+    git push origin main
+    ```
+- **Database migrations**: when adding new schema, **don't edit existing migrations** (they've already been applied to production Supabase). Create a new numbered file (e.g. `010_*.sql`). Apply via Supabase Studio SQL editor or `npx supabase db push` BEFORE pushing the code that consumes it — broken deploys can be hard to recover.
