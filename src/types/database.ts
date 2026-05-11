@@ -136,6 +136,9 @@ export interface EventAttendee {
   user_id: string;
 }
 
+export type CampProgram = '3d-tisk' | 'iot' | 'tech' | 'blender' | 'web' | 'hry' | 'csharp';
+export type CampType = 'weekend' | 'oneday';
+
 export interface Camp {
   id: string;
   title: string;
@@ -143,18 +146,41 @@ export interface Camp {
   start_date: string;
   end_date: string;
   location: string | null;
+  location_detail: string | null;
   capacity: number;
   enrolled_count: number;
   status: CampStatus;
   registration_url: string | null;
   color: string | null;
   web_source_id: string | null;
+  // Fields used by weeks.cz (added in migration 009)
+  program: CampProgram | null;
+  camp_type: CampType | null;
+  price: number | null;
+  ddm_id: string | null;
+  day_label: string | null;
+  display_order: number;
   created_by: string;
   created_at: string;
   updated_at: string;
   // Joined
   creator?: User;
 }
+
+export const CAMP_PROGRAM_CONFIG: Record<CampProgram, { label: string; color: string }> = {
+  '3d-tisk': { label: '3D tisk', color: '#8B5CF6' },
+  'iot': { label: 'IoT & elektronika', color: '#06B6D4' },
+  'tech': { label: 'MIX (3D + IoT + VR)', color: '#10B981' },
+  'blender': { label: '3D modelování', color: '#F59E0B' },
+  'web': { label: 'Tvorba webu', color: '#3B82F6' },
+  'hry': { label: 'Vývoj her', color: '#EC4899' },
+  'csharp': { label: 'Programování C#', color: '#6366F1' },
+};
+
+export const CAMP_TYPE_CONFIG: Record<CampType, { label: string }> = {
+  weekend: { label: 'Víkendový (So+Ne)' },
+  oneday: { label: 'Jednodenní' },
+};
 
 export interface ShopProduct {
   id: string;

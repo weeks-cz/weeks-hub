@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { createClient } from '@/lib/supabase/client';
-import type { Camp, CampStatus } from '@/types/database';
+import { revalidateWebCamps } from '@/lib/revalidate-web';
+import type { Camp, CampStatus, CampProgram, CampType } from '@/types/database';
 
 export function useCamps() {
   const [camps, setCamps] = useState<Camp[]>([]);
@@ -27,29 +28,8 @@ export function useCamps() {
     }
   }, []);
 
-  // Auto-sync from weeks.cz: on mount and every 15 minutes
-  const autoSync = useCallback(async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      await fetch('/api/sync-camps', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-      // Refetch after sync completes
-      fetchCamps();
-    } catch {
-      // Silent - auto-sync should never interrupt the user
-    }
-  }, [fetchCamps]);
-
   useEffect(() => {
     fetchCamps();
-    // Auto-sync on first load (slight delay to not block initial render)
-    const initialSync = setTimeout(autoSync, 3000);
-    // Then every 15 minutes
-    const interval = setInterval(autoSync, 15 * 60 * 1000);
 
     const channel = supabase
       .channel('camps-changes')
@@ -59,11 +39,9 @@ export function useCamps() {
       .subscribe();
 
     return () => {
-      clearTimeout(initialSync);
-      clearInterval(interval);
       supabase.removeChannel(channel);
     };
-  }, [fetchCamps, autoSync]);
+  }, [fetchCamps]);
 
   const getUserId = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -86,10 +64,16 @@ export function useCamps() {
     start_date: string;
     end_date: string;
     location?: string;
+    location_detail?: string;
     capacity: number;
     status: CampStatus;
     registration_url?: string;
     color?: string;
+    program?: CampProgram;
+    camp_type?: CampType;
+    price?: number;
+    ddm_id?: string;
+    day_label?: string;
   }) => {
     const userId = await getUserId();
     if (!userId) return null;
@@ -102,10 +86,16 @@ export function useCamps() {
         start_date: camp.start_date,
         end_date: camp.end_date,
         location: camp.location || null,
+        location_detail: camp.location_detail || null,
         capacity: camp.capacity,
         status: camp.status,
         registration_url: camp.registration_url || null,
-        color: camp.color || '#10B981',
+        color: camp.color || colorForProgram(camp.program),
+        program: camp.program || null,
+        camp_type: camp.camp_type || null,
+        price: camp.price ?? null,
+        ddm_id: camp.ddm_id || null,
+        day_label: camp.day_label || null,
         created_by: userId,
       })
       .select()
@@ -114,6 +104,7 @@ export function useCamps() {
     if (newCamp) {
       logActivity(userId, 'camp_created', newCamp.id, { title: camp.title, status: camp.status });
       fetchCamps();
+      revalidateWebCamps();
       toast.success('Tábor vytvořen');
     }
 
@@ -127,6 +118,7 @@ export function useCamps() {
   const updateCamp = async (campId: string, updates: Partial<Camp>) => {
     const userId = await getUserId();
     const { creator, ...cleanUpdates } = updates as Camp;
+    void creator;
 
     const { error } = await supabase
       .from('camps')
@@ -136,6 +128,7 @@ export function useCamps() {
     if (!error) {
       if (userId) logActivity(userId, 'camp_updated', campId, { title: cleanUpdates.title });
       await fetchCamps();
+      revalidateWebCamps();
       toast.success('Tábor aktualizován');
     } else {
       toast.error('Nepodařilo se aktualizovat tábor');
@@ -152,6 +145,7 @@ export function useCamps() {
 
     if (!error && userId) {
       logActivity(userId, 'camp_deleted', campId);
+      revalidateWebCamps();
       toast.success('Tábor smazán');
     }
 
@@ -169,7 +163,6 @@ export function useCamps() {
 
     const newCount = Math.max(0, camp.enrolled_count + delta);
 
-    // Optimistic update
     setCamps((prev) => prev.map((c) => c.id === campId ? { ...c, enrolled_count: newCount } : c));
 
     const userId = await getUserId();
@@ -201,4 +194,13 @@ export function useCamps() {
     updateEnrollment,
     refetch: fetchCamps,
   };
+}
+
+function colorForProgram(program?: CampProgram): string {
+  switch (program) {
+    case '3d-tisk': return '#8B5CF6';
+    case 'iot': return '#06B6D4';
+    case 'tech': return '#10B981';
+    default: return '#10B981';
+  }
 }
