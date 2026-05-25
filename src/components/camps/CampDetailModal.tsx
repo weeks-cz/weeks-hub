@@ -46,6 +46,7 @@ export function CampDetailModal({ camp, isOpen, onClose, onUpdate, onDelete, onE
   const [campType, setCampType] = useState<CampType>((camp.camp_type as CampType) || 'oneday');
   const [price, setPrice] = useState(String(camp.price ?? ''));
   const [ddmId, setDdmId] = useState(camp.ddm_id || '');
+  const [singleDayOption, setSingleDayOption] = useState(!!camp.single_day_option);
   const [isSaving, setIsSaving] = useState(false);
 
   const statusConfig = CAMP_STATUS_CONFIG[camp.status];
@@ -66,6 +67,7 @@ export function CampDetailModal({ camp, isOpen, onClose, onUpdate, onDelete, onE
     setCampType((camp.camp_type as CampType) || 'oneday');
     setPrice(String(camp.price ?? ''));
     setDdmId(camp.ddm_id || '');
+    setSingleDayOption(!!camp.single_day_option);
     setIsEditing(true);
   };
 
@@ -86,6 +88,7 @@ export function CampDetailModal({ camp, isOpen, onClose, onUpdate, onDelete, onE
       price: price.trim() ? parseInt(price) : null,
       ddm_id: ddmId.trim() || null,
       day_label: dayFromDate(startDate) || null,
+      single_day_option: singleDayOption,
     });
     setIsSaving(false);
     if (success) setIsEditing(false);
@@ -141,6 +144,15 @@ export function CampDetailModal({ camp, isOpen, onClose, onUpdate, onDelete, onE
             <Input label="DDM ID" value={ddmId} onChange={(e) => setDdmId(e.target.value)} placeholder="775" />
             <Input label="Odkaz na registraci" value={registrationUrl} onChange={(e) => setRegistrationUrl(e.target.value)} placeholder="https://..." />
           </div>
+          <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)] cursor-pointer">
+            <input
+              type="checkbox"
+              checked={singleDayOption}
+              onChange={(e) => setSingleDayOption(e.target.checked)}
+              className="w-4 h-4"
+            />
+            Umožnit přihlášení jen na 1 den (web zobrazí jednodenní variantu)
+          </label>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="ghost" onClick={() => setIsEditing(false)}>Zrušit</Button>
             <Button onClick={handleSave} isLoading={isSaving}>Uložit</Button>

@@ -28,6 +28,7 @@ interface CreateCampModalProps {
     price?: number;
     ddm_id?: string;
     day_label?: string;
+    single_day_option?: boolean;
   }) => Promise<unknown>;
 }
 
@@ -53,6 +54,7 @@ export function CreateCampModal({ isOpen, onClose, onSubmit }: CreateCampModalPr
   const [campType, setCampType] = useState<CampType>('oneday');
   const [price, setPrice] = useState('1490');
   const [ddmId, setDdmId] = useState('');
+  const [singleDayOption, setSingleDayOption] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -76,6 +78,7 @@ export function CreateCampModal({ isOpen, onClose, onSubmit }: CreateCampModalPr
       price: parseInt(price) || undefined,
       ddm_id: ddmId.trim() || undefined,
       day_label: dayFromDate(startDate) || undefined,
+      single_day_option: singleDayOption,
     });
 
     setIsSubmitting(false);
@@ -92,6 +95,7 @@ export function CreateCampModal({ isOpen, onClose, onSubmit }: CreateCampModalPr
     setCampType('oneday');
     setPrice('1490');
     setDdmId('');
+    setSingleDayOption(false);
     onClose();
   };
 
@@ -224,6 +228,16 @@ export function CreateCampModal({ isOpen, onClose, onSubmit }: CreateCampModalPr
             placeholder="https://www.ddmp6.cz/tabory/?id=..."
           />
         </div>
+
+        <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)] cursor-pointer">
+          <input
+            type="checkbox"
+            checked={singleDayOption}
+            onChange={(e) => setSingleDayOption(e.target.checked)}
+            className="w-4 h-4"
+          />
+          Umožnit přihlášení jen na 1 den (web zobrazí jednodenní variantu)
+        </label>
 
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="ghost" onClick={onClose}>

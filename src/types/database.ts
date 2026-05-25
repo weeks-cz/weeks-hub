@@ -160,6 +160,7 @@ export interface Camp {
   ddm_id: string | null;
   day_label: string | null;
   display_order: number;
+  single_day_option: boolean;
   created_by: string;
   created_at: string;
   updated_at: string;

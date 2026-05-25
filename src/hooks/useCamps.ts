@@ -74,6 +74,7 @@ export function useCamps() {
     price?: number;
     ddm_id?: string;
     day_label?: string;
+    single_day_option?: boolean;
   }) => {
     const userId = await getUserId();
     if (!userId) return null;
@@ -96,6 +97,7 @@ export function useCamps() {
         price: camp.price ?? null,
         ddm_id: camp.ddm_id || null,
         day_label: camp.day_label || null,
+        single_day_option: camp.single_day_option ?? false,
         created_by: userId,
       })
       .select()
