@@ -8,8 +8,8 @@ export interface KvProgramInfo {
 }
 
 export const KV_PROGRAMS: Record<string, KvProgramInfo> = {
-  'letni-primestsky': { name: 'Letní příměstský tábor', capacity: 12, price: 4990 },
-  'mix': { name: 'Víkendový tábor chytrých technologií', capacity: 12, price: 2990 },
+  'letni-primestsky': { name: 'Letní příměstský tábor', capacity: 15, price: 4990 },
+  'mix': { name: 'Víkendový tábor chytrých technologií', capacity: 15, price: 2990 },
 };
 
 export const KV_LOCATIONS: Record<string, string> = {
