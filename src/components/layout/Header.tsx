@@ -16,6 +16,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/profile/edit': 'Upravit profil',
   '/admin': 'Administrace',
   '/admin/users': 'Správa uživatelů',
+  '/registrace': 'Registrace',
 };
 
 interface HeaderProps {
@@ -31,7 +32,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
   const avatarSrc = user?.custom_avatar_url || user?.avatar_url;
 
   return (
-    <header className="h-16 bg-[var(--bg-surface)]/80 backdrop-blur-xl border-b border-[var(--border-default)] flex items-center justify-between px-4 lg:px-6 sticky top-0 z-20">
+    <header className="h-16 bg-[var(--bg-surface)]/80 backdrop-blur-xl border-b border-[var(--border-default)] flex items-center justify-between px-4 lg:px-6 sticky top-0 z-20 print:hidden">
       <div className="flex items-center gap-3">
         <button
           onClick={onMenuToggle}

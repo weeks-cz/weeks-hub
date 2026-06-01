@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, Kanban, Calendar, Tent, FileText, BarChart3, Shield, GraduationCap, User, LogOut, Package } from 'lucide-react';
+import { LayoutDashboard, Kanban, Calendar, Tent, FileText, BarChart3, Shield, GraduationCap, ClipboardList, User, LogOut, Package } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useAuth } from '@/contexts/AuthContext';
 import { isAdmin } from '@/lib/utils/roles';
@@ -25,7 +25,7 @@ export function Sidebar() {
   const { user, signOut } = useAuth();
 
   return (
-    <aside className="hidden lg:flex flex-col w-[260px] h-screen bg-[var(--bg-surface)] border-r border-[var(--border-default)] fixed left-0 top-0 z-30">
+    <aside className="hidden lg:flex flex-col w-[260px] h-screen bg-[var(--bg-surface)] border-r border-[var(--border-default)] fixed left-0 top-0 z-30 print:hidden">
       {/* Logo → Dashboard */}
       <Link
         href={ROUTES.dashboard}
@@ -70,6 +70,25 @@ export function Sidebar() {
         {isAdmin(user?.role) && (
           <>
             <div className="mx-3 my-2 border-t border-[var(--border-default)]" />
+            <Link
+              href={ROUTES.registrace}
+              className={cn(
+                'relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
+                pathname.startsWith(ROUTES.registrace)
+                  ? 'text-[var(--color-primary)]'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
+              )}
+            >
+              {pathname.startsWith(ROUTES.registrace) && (
+                <motion.div
+                  layoutId="sidebar-active"
+                  className="absolute inset-0 rounded-xl bg-[var(--color-primary)]/10"
+                  transition={{ type: 'spring', duration: 0.4, bounce: 0.15 }}
+                />
+              )}
+              <ClipboardList className="w-5 h-5 relative z-10" />
+              <span className="relative z-10">Registrace</span>
+            </Link>
             <Link
               href={ROUTES.admin}
               className={cn(

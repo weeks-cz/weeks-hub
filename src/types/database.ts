@@ -334,3 +334,60 @@ export const PROGRAM_CONFIG: Record<string, string> = {
   'csharp': 'Programování C#',
   'nevim': 'Ještě nevím',
 };
+
+// --- Registrations (interní KV registrace, sdílená tabulka s weeks_web) ---
+export type RegistrationStatus = 'pending' | 'paid' | 'confirmed' | 'cancelled';
+export type RegistrationPaymentStatus = 'pending' | 'completed' | 'refunded';
+export type PickupMethod = 'solo' | 'named_persons';
+
+export interface Registration {
+  id: string;
+  created_at: string;
+  status: RegistrationStatus;
+  location_id: string;
+  program: string;
+  term_id: string;
+  term_start: string;
+  term_end: string;
+  parent_name: string;
+  parent_email: string;
+  parent_phone: string;
+  parent_address: string;
+  child_name: string;
+  child_birthdate: string;
+  child_insurance: string;
+  child_health_notes: string | null;
+  child_experience: string | null;
+  pickup_method: PickupMethod | null;
+  pickup_time: string | null;
+  pickup_persons: string | null;
+  vop_consent: boolean;
+  gdpr_consent: boolean;
+  photo_consent: boolean | null;
+  marketing_consent: boolean | null;
+  payment_status: RegistrationPaymentStatus;
+  payment_method: string | null;
+  payment_amount: number | null;
+  payment_completed_at: string | null;
+  comgate_payment_id: string | null;
+  comgate_status: string | null;
+  fakturoid_invoice_id: string | null;
+  confirmation_sent_at: string | null;
+  nastupni_sent_at: string | null;
+  vop_accepted_at: string | null;
+  vop_accepted_ip: string | null;
+  notes: string | null;
+}
+
+export const REGISTRATION_STATUS_CONFIG: Record<RegistrationStatus, { label: string; color: string }> = {
+  pending: { label: 'Čeká', color: '#F59E0B' },
+  paid: { label: 'Zaplaceno', color: '#10B981' },
+  confirmed: { label: 'Potvrzeno', color: '#6366F1' },
+  cancelled: { label: 'Zrušeno', color: '#64748B' },
+};
+
+export const PAYMENT_STATUS_CONFIG: Record<RegistrationPaymentStatus, { label: string; color: string }> = {
+  pending: { label: 'Čeká na platbu', color: '#F59E0B' },
+  completed: { label: 'Zaplaceno', color: '#10B981' },
+  refunded: { label: 'Vráceno', color: '#64748B' },
+};

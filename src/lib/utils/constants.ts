@@ -15,6 +15,7 @@ export const ROUTES = {
   shopProducts: '/shop-products',
   formulare: '/formulare',
   analytics: '/analytics',
+  registrace: '/registrace',
   admin: '/admin',
   adminUsers: '/admin/users',
   profile: '/profile',

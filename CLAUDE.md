@@ -24,6 +24,7 @@ Google Analytics a Meta Ads přehledy přímo v aplikaci.
   - `meta-campaigns/route.ts` - Meta Marketing API proxy (FB ad campaigns)
   - `form-submissions/route.ts` - sync formulářů z weeks.cz + notifikace adminům
   - `sync-camps/route.ts` - sync táborů z weeks.cz + enrollment notifikace
+  - `registrations/route.ts` + `registrations/[id]/invoice/route.ts` - admin-gated čtení interních KV registrací (service-role) + náhled Fakturoid faktury
 - `src/components/` - komponenty (ui/, board/, calendar/, dashboard/, layout/, shared/, analytics/, admin/, profile/)
 - `src/components/board/` - TaskDetailPanel (slide-over drawer), CommentList, CommentInput, AttachmentList, FileUploadZone, SubtaskList
 - `src/components/layout/Header.tsx` - top bar s page title, notifikace, PFP→profil link, logo→dashboard (mobile)
@@ -95,8 +96,19 @@ GA4_PROPERTY_ID=...              # GA4 property ID (číslo)
 # Meta Marketing API
 META_ACCESS_TOKEN=...            # long-lived user token (60 dní, expiry ~May 12, 2026)
 META_AD_ACCOUNT_ID=...           # act_XXXXXXXXX
+
+# Registrace (sekce nad sdílenou Supabase DB s weeks_web; Fakturoid stejný účet)
+SUPABASE_SERVICE_ROLE_KEY=...    # service-role klíč, čte tabulku registrations (RLS bypass) — POUZE server
+FAKTUROID_SLUG=...               # náhled faktury
+FAKTUROID_CLIENT_ID=...
+FAKTUROID_CLIENT_SECRET=...
+FAKTUROID_USER_AGENT=Weeks Hub (admin@weeks.cz)
 ```
 **POZOR:** env vars nesmí mít trailing newline (`\n`) — způsobí auth chyby.
+
+## Sekce Registrace
+- `src/app/(authenticated)/registrace/` — admin/developer-only přehled interních KV registrací (tabulka `registrations` sdílená s weeks_web). Seskupeno podle termínu, slide-over detail dítěte, stav odeslaného (faktura/potvrzovací mail/nástupní list), náhled Fakturoid faktury, tisk PDF (`window.print()`): účastnický list (`[id]/tisk`) + soupiska termínu (`tisk?term=`).
+- Čte se výhradně přes server route + service-role (RLS po migraci 012 ve weeks_web SELECT nepustí). Hook `useRegistrations`, statická KV mapa `src/lib/kvCamps.ts`. Spec/plán: viz weeks-internal.
 
 ## Konvence
 - Jazyk UI: čeština

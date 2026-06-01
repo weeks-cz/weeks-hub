@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Kanban, Calendar, Tent, FileText, BarChart3, Shield, User, X, LogOut, Package } from 'lucide-react';
+import { LayoutDashboard, Kanban, Calendar, Tent, FileText, BarChart3, Shield, ClipboardList, User, X, LogOut, Package } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useAuth } from '@/contexts/AuthContext';
 import { isAdmin } from '@/lib/utils/roles';
@@ -81,6 +81,19 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
           {isAdmin(user?.role) && (
             <>
               <div className="mx-3 my-2 border-t border-[var(--border-default)]" />
+              <Link
+                href={ROUTES.registrace}
+                onClick={onClose}
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150',
+                  pathname.startsWith(ROUTES.registrace)
+                    ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
+                )}
+              >
+                <ClipboardList className="w-5 h-5" />
+                Registrace
+              </Link>
               <Link
                 href={ROUTES.admin}
                 onClick={onClose}

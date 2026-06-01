@@ -82,9 +82,9 @@ export default function AuthenticatedLayout({
           <Sidebar />
           <MobileNav isOpen={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
 
-          <div className="lg:ml-[260px]">
+          <div className="lg:ml-[260px] print:ml-0">
             <Header onMenuToggle={() => setMobileNavOpen(true)} />
-            <main className="p-4 lg:p-6">
+            <main className="p-4 lg:p-6 print:p-0">
               {children}
             </main>
           </div>
