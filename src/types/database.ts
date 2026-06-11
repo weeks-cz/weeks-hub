@@ -374,6 +374,7 @@ export interface Registration {
   fakturoid_invoice_id: string | null;
   confirmation_sent_at: string | null;
   nastupni_sent_at: string | null;
+  payment_reminder_sent_at: string | null;
   vop_accepted_at: string | null;
   vop_accepted_ip: string | null;
   notes: string | null;

@@ -2,7 +2,7 @@
 
 import type React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, FileText, Printer } from 'lucide-react';
+import { X, FileText, Printer, BellRing } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { Registration } from '@/types/database';
 import { PAYMENT_STATUS_CONFIG } from '@/types/database';
@@ -106,6 +106,16 @@ export function RegistrationDetailPanel({
               >
                 <Printer className="w-4 h-4" /> Tisk listu
               </a>
+              {r.payment_status === 'pending' && (
+                <a
+                  href={`/api/registrations/${r.id}/reminder-preview`}
+                  target="_blank"
+                  rel="noopener"
+                  className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-[var(--bg-surface-hover)] text-[var(--text-primary)]"
+                >
+                  <BellRing className="w-4 h-4" /> Náhled upomínky
+                </a>
+              )}
             </div>
 
             <div className="px-6 py-4 space-y-5">
