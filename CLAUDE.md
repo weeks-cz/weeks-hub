@@ -110,6 +110,19 @@ FAKTUROID_USER_AGENT=Weeks Hub (admin@weeks.cz)
 - `src/app/(authenticated)/registrace/` — admin/developer-only přehled interních KV registrací (tabulka `registrations` sdílená s weeks_web). Seskupeno podle termínu, slide-over detail dítěte, stav odeslaného (faktura/potvrzovací mail/nástupní list), náhled Fakturoid faktury, tisk PDF (`window.print()`): účastnický list (`[id]/tisk`) + soupiska termínu (`tisk?term=`).
 - Čte se výhradně přes server route + service-role (RLS po migraci 012 ve weeks_web SELECT nepustí). Hook `useRegistrations`, statická KV mapa `src/lib/kvCamps.ts`. Spec/plán: viz weeks-internal.
 
+## Sekce Děti (databáze dětí)
+- `src/app/(authenticated)/deti/` — admin/developer-only přehled dětí, které u nás byly. Tabulky `children` + `child_visits` (migrace 012). **Jeden řádek v `child_visits` = jedna účast**, počet návštěv je `COUNT(*)` — díky tomu se KV registrace i importované DDM soupisky sčítají do jednoho čísla.
+- `children.match_key` = normalizované jméno + datum narození, počítá se v `src/lib/children/matching.ts` (ne generated column — `unaccent()` není IMMUTABLE). Jména se před porovnáním **řadí po slovech**, aby „Novák Jan" sedlo na „Jan Novák".
+- „Načíst z registrací" (`/api/children/sync`) je idempotentní; u existujících dětí doplní jen NULL pole, ručně zadané hodnoty nepřepisuje. Tabulku `registrations` nikdy nemění — zapisuje do ní veřejný web.
+- Import xlsx (`/api/children/import`) má povinný krok náhledu (`mode=preview`) → teprve `mode=commit` zapisuje. Formát a aliasy hlaviček v `src/lib/children/importFormat.ts`, šablona ke stažení na `/api/children/template`. Knihovna `exceljs`, jen server-side.
+- **Pozor:** `child_visits` má částečný a výrazový unique index, takže `ON CONFLICT` je na ně nepoužitelný — duplicity se filtrují v kódu, indexy jsou jen pojistka.
+
+## Export kalendáře (ICS feed)
+- `src/lib/ics.ts` generuje iCalendar ručně, bez závislosti. `/api/calendar/feed/[token]` vrací `text/calendar`.
+- **Autentizace je tajný token v URL** (`users.calendar_feed_token`, migrace 013) — kalendářové klienty neumí nést session. Cesta `/api/calendar/feed` proto **musí zůstat v `publicPaths`** v `src/lib/supabase/middleware.ts`, jinak Google dostane HTML login stránku místo kalendáře.
+- Celodenní události se převádějí na datum v **Europe/Prague**, ne v UTC — událost uložená jako lokální půlnoc by v UTC vyšla o den dřív.
+- Google si odběry stahuje po svém (běžně 8–24 h), nejde to urychlit. Modal na to upozorňuje.
+
 ## Konvence
 - Jazyk UI: čeština
 - Jazyk kódu/komentářů: angličtina
@@ -135,7 +148,7 @@ npx tsc --noEmit # TypeScript check (preferovaný způsob ověření před push)
 - **Camp sync status:** Status se odvozuje z dat (registrationUrl → open_with_link, capacity full → full), ne z raw API
 - **Weeks.cz camp data:** Hardcoded v `weeks_web/src/app/api/camps/route.ts` — DDM ID a registrationUrl se musí ručně aktualizovat
 - **LabelSelect dropdown:** Nesmí být absolute positioned (bottom-full/top-full) — způsobuje overflow bugy. Použít statický element
-- **Migrace:** Spouštějí se ručně v Supabase SQL Editoru. Aktuální: 001-008
+- **Migrace:** Spouštějí se ručně v Supabase SQL Editoru. Aktuální: 001-013. **Číslování koliduje s weeks_web** — obě repa píšou do téže DB a obě mají svoje `012`, proto popisné názvy souborů
 - **npm run build:** Selže bez Supabase env vars (prerendering) — pro kontrolu použít `npx tsc --noEmit`
 - **🐛 BUG: Subtask navigace nefunguje** — kliknutí na child task v TaskDetailPanel neotevře jeho detail. Problém je v `onNavigateToTask` handleru v KanbanBoard — nastavení `selectedTaskId` na child task ID nepřepne panel. Potřebuje debug: zkontrolovat zda child task existuje v `tasks` poli, zda se `selectedTask` správně resolvuje, a zda panel reaguje na změnu tasku
 
