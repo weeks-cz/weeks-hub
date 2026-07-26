@@ -392,3 +392,47 @@ export const PAYMENT_STATUS_CONFIG: Record<RegistrationPaymentStatus, { label: s
   completed: { label: 'Zaplaceno', color: '#10B981' },
   refunded: { label: 'Vráceno', color: '#64748B' },
 };
+
+// ===== CHILDREN DATABASE =====
+
+export type ChildSource = 'kv' | 'ddm' | 'manual';
+
+export interface Child {
+  id: string;
+  full_name: string;
+  birthdate: string | null;
+  match_key: string;
+  parent_name: string | null;
+  parent_email: string | null;
+  parent_phone: string | null;
+  insurance: string | null;
+  health_notes: string | null;
+  experience: string | null;
+  notes: string | null;
+  source: ChildSource;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+  // Joined
+  visits?: ChildVisit[];
+  visit_count?: number;
+  last_visit?: string | null;
+}
+
+export interface ChildVisit {
+  id: string;
+  child_id: string;
+  registration_id: string | null;
+  camp_label: string;
+  location: string | null;
+  program: string | null;
+  visit_date: string | null;
+  source: ChildSource;
+  created_at: string;
+}
+
+export const CHILD_SOURCE_CONFIG: Record<ChildSource, { label: string; color: string }> = {
+  kv: { label: 'Registrace', color: '#10B981' },
+  ddm: { label: 'DDM', color: '#6366F1' },
+  manual: { label: 'Ručně', color: '#64748B' },
+};

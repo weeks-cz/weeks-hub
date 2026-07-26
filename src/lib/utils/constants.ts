@@ -16,6 +16,7 @@ export const ROUTES = {
   formulare: '/formulare',
   analytics: '/analytics',
   registrace: '/registrace',
+  deti: '/deti',
   admin: '/admin',
   adminUsers: '/admin/users',
   profile: '/profile',
