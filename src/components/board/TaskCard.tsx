@@ -7,19 +7,20 @@ import { Badge } from '@/components/ui/Badge';
 import { PRIORITY_CONFIG, type Task } from '@/types/database';
 import { formatDateShort } from '@/lib/utils/date';
 import { cn } from '@/lib/utils/cn';
+import type { SubtaskStats } from '@/lib/utils/subtasks';
 
 interface TaskCardProps {
   task: Task;
   index: number;
+  /** Counts both legacy checklist subtasks and nested child tasks — see lib/utils/subtasks */
+  subtaskStats: SubtaskStats;
   onClick: () => void;
   onQuickComplete?: (taskId: string) => void;
 }
 
-export function TaskCard({ task, index, onClick, onQuickComplete }: TaskCardProps) {
+export function TaskCard({ task, index, subtaskStats, onClick, onQuickComplete }: TaskCardProps) {
   const priorityConfig = PRIORITY_CONFIG[task.priority];
-  const completedSubtasks = task.subtasks?.filter((s) => s.completed).length ?? 0;
-  const totalSubtasks = task.subtasks?.length ?? 0;
-  const subtaskProgress = totalSubtasks > 0 ? (completedSubtasks / totalSubtasks) * 100 : 0;
+  const { done: completedSubtasks, total: totalSubtasks, progress: subtaskProgress } = subtaskStats;
   const commentCount = task.comments?.length ?? 0;
   const attachmentCount = task.attachments?.length ?? 0;
   const isDone = task.status === 'done';

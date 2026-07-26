@@ -5,17 +5,22 @@ import { Plus } from 'lucide-react';
 import { TaskCard } from './TaskCard';
 import { cn } from '@/lib/utils/cn';
 import type { Task, TaskStatus } from '@/types/database';
+import type { SubtaskStats } from '@/lib/utils/subtasks';
 
 interface BoardColumnProps {
   id: TaskStatus;
   title: string;
   tasks: Task[];
+  /** Keyed by task id — built once from the full task list, see lib/utils/subtasks */
+  subtaskStats: Map<string, SubtaskStats>;
   onTaskClick: (task: Task) => void;
   onAddTask: (status: TaskStatus) => void;
   onQuickComplete?: (taskId: string) => void;
 }
 
-export function BoardColumn({ id, title, tasks, onTaskClick, onAddTask, onQuickComplete }: BoardColumnProps) {
+const NO_SUBTASKS: SubtaskStats = { done: 0, total: 0, progress: 0 };
+
+export function BoardColumn({ id, title, tasks, subtaskStats, onTaskClick, onAddTask, onQuickComplete }: BoardColumnProps) {
   return (
     <div className="flex flex-col bg-[var(--bg-primary)] rounded-2xl border border-[var(--border-default)] min-w-[280px] w-[280px] lg:min-w-[260px] lg:w-auto lg:flex-1 max-h-full">
       {/* Header */}
@@ -51,6 +56,7 @@ export function BoardColumn({ id, title, tasks, onTaskClick, onAddTask, onQuickC
                 key={task.id}
                 task={task}
                 index={index}
+                subtaskStats={subtaskStats.get(task.id) ?? NO_SUBTASKS}
                 onClick={() => onTaskClick(task)}
                 onQuickComplete={onQuickComplete}
               />

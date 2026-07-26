@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { DragDropContext, type DropResult } from '@hello-pangea/dnd';
 import { BoardColumn } from './BoardColumn';
@@ -13,6 +13,7 @@ import { Select } from '@/components/ui/Select';
 import { BoardSkeleton } from '@/components/ui/Skeleton';
 import { Plus, Filter } from 'lucide-react';
 import { useUsers } from '@/hooks/useUsers';
+import { buildSubtaskStatsMap } from '@/lib/utils/subtasks';
 
 export function KanbanBoard() {
   const searchParams = useSearchParams();
@@ -52,6 +53,9 @@ export function KanbanBoard() {
   }, [searchParams, loading]);
 
   const selectedTask = selectedTaskId ? tasks.find((t) => t.id === selectedTaskId) || null : null;
+
+  // Cards can't see their own child tasks, so counts are derived from the full list here.
+  const subtaskStats = useMemo(() => buildSubtaskStatsMap(tasks), [tasks]);
 
   const openTask = (task: Task) => {
     setSelectedTaskId(task.id);
@@ -166,6 +170,7 @@ export function KanbanBoard() {
                 id={column.id}
                 title={column.title}
                 tasks={getTasksByStatus(column.id)}
+                subtaskStats={subtaskStats}
                 onTaskClick={openTask}
                 onAddTask={handleAddTask}
                 onQuickComplete={handleQuickComplete}
