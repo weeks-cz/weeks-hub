@@ -2,12 +2,13 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, CalendarPlus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { MonthView } from './MonthView';
 import { WeekView } from './WeekView';
 import { CreateEventModal } from './CreateEventModal';
 import { EventDetailModal } from './EventDetailModal';
+import { SubscribeModal } from './SubscribeModal';
 import { useEvents } from '@/hooks/useEvents';
 import { useTasks } from '@/hooks/useTasks';
 import { useCamps } from '@/hooks/useCamps';
@@ -23,6 +24,7 @@ export function CalendarView() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [subscribeOpen, setSubscribeOpen] = useState(false);
   const router = useRouter();
 
   const { events, loading, createEvent, updateEvent, deleteEvent } = useEvents();
@@ -130,6 +132,11 @@ export function CalendarView() {
             </button>
           </div>
 
+          <Button variant="secondary" size="sm" onClick={() => setSubscribeOpen(true)}>
+            <CalendarPlus className="w-4 h-4" />
+            <span className="hidden sm:inline ml-1.5">Připojit do kalendáře</span>
+          </Button>
+
           <Button size="sm" onClick={() => { setSelectedDate(''); setCreateModalOpen(true); }}>
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">Nová událost</span>
@@ -169,6 +176,8 @@ export function CalendarView() {
         onUpdate={handleUpdateEvent}
         onDelete={deleteEvent}
       />
+
+      <SubscribeModal isOpen={subscribeOpen} onClose={() => setSubscribeOpen(false)} />
     </div>
   );
 }

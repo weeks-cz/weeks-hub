@@ -34,8 +34,11 @@ export async function updateSession(request: NextRequest) {
 
   const user = session?.user ?? null;
 
-  // Public routes
-  const publicPaths = ['/auth/login', '/auth/callback', '/auth/error', '/api/form-submissions', '/api/shop/products'];
+  // Public routes.
+  // `/api/calendar/feed` must stay open: Google and Apple fetch it without any
+  // session, and a redirect to the login page would hand them HTML instead of a
+  // calendar. It authenticates itself with the secret token in the URL.
+  const publicPaths = ['/auth/login', '/auth/callback', '/auth/error', '/api/form-submissions', '/api/shop/products', '/api/calendar/feed'];
   const isPublicPath = publicPaths.some(path =>
     request.nextUrl.pathname.startsWith(path)
   );
