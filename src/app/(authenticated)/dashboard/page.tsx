@@ -6,15 +6,17 @@ import { useEvents } from '@/hooks/useEvents';
 import { useUsers } from '@/hooks/useUsers';
 import { useCamps } from '@/hooks/useCamps';
 import { useFormSubmissions } from '@/hooks/useFormSubmissions';
-import { StatsCards } from '@/components/dashboard/StatsCards';
-import { MyTasks } from '@/components/dashboard/MyTasks';
-import { UpcomingEvents } from '@/components/dashboard/UpcomingEvents';
+import { useRegistrations } from '@/hooks/useRegistrations';
+import { AttentionBanner } from '@/components/dashboard/AttentionBanner';
+import { FocusStream } from '@/components/dashboard/FocusStream';
+import { SeasonPanel } from '@/components/dashboard/SeasonPanel';
+import { TeamPanel } from '@/components/dashboard/TeamPanel';
 import { CampsOverview } from '@/components/dashboard/CampsOverview';
 import { SubmissionsOverview } from '@/components/dashboard/SubmissionsOverview';
-import { TeamTasks } from '@/components/dashboard/TeamTasks';
 import { QuickActions } from '@/components/dashboard/QuickActions';
-import { StatsCardsSkeleton, TaskListSkeleton } from '@/components/ui/Skeleton';
-import { addDays } from '@/lib/utils/date';
+import { TaskListSkeleton } from '@/components/ui/Skeleton';
+import { addDays, format, toDateKey } from '@/lib/utils/date';
+import { cs } from 'date-fns/locale';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -23,106 +25,70 @@ export default function DashboardPage() {
   const { users, loading: usersLoading } = useUsers();
   const { camps, loading: campsLoading } = useCamps();
   const { submissions, newCount, loading: submissionsLoading } = useFormSubmissions();
+  // Vrací 403 bez oprávnění a chybu si drží uvnitř, takže se dá volat vždycky;
+  // panel se pak prostě nevykreslí.
+  const { registrations, byTerm, error: regError } = useRegistrations();
 
-  // My tasks (assigned to current user, not done)
-  const myTasks = tasksLoading ? [] : tasks.filter(
-    (t) => t.assignee_id === user?.id && t.status !== 'done'
-  );
+  const dnes = new Date();
+  const doTydne = addDays(dnes, 7);
 
-  // Upcoming events (next 7 days)
-  const now = new Date();
-  const weekFromNow = addDays(now, 7);
-  const upcomingEvents = eventsLoading ? [] : events.filter((e) => {
-    const start = new Date(e.start_date);
-    return start >= now && start <= weekFromNow;
+  // Události od teď do týdne — do proudu se stejně dostane jen to,
+  // co spadne do „po termínu / dnes / tento týden".
+  const nadchazejiciUdalosti = events.filter((e) => {
+    const den = e.start_date.slice(0, 10);
+    return den >= toDateKey(dnes) && den <= toDateKey(doTydne);
   });
 
-  return (
-    <div className="space-y-6 relative">
-      {/* Decorative blobs */}
-      <div className="blob blob-primary w-[300px] h-[300px] -top-32 -right-32" />
-      <div className="blob blob-accent w-[200px] h-[200px] top-64 -left-24" />
+  const datum = format(dnes, 'EEEE d. MMMM', { locale: cs });
 
-      {/* Welcome + Quick Actions */}
-      <div className="flex items-center justify-between relative">
+  return (
+    <div className="space-y-5">
+      {/* Uvítání */}
+      <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold font-[family-name:var(--font-heading)]">
+          <h1 className="text-2xl font-bold font-[family-name:var(--font-heading)]">
             <span className="text-[var(--text-primary)]">Ahoj, </span>
             <span className="text-gradient">{user?.full_name?.split(' ')[0] || 'tam'}</span>
-          </h2>
-          <p className="text-sm text-[var(--text-muted)] mt-1">
-            Tady je přehled tvého dne
-          </p>
+          </h1>
+          <p className="text-sm text-[var(--text-muted)] mt-1 first-letter:uppercase">{datum}</p>
         </div>
         <QuickActions />
-      </div>
+      </header>
 
-      {/* === MOBILE LAYOUT (lg:hidden) === */}
-      <div className="lg:hidden space-y-4">
-        {/* 1. Tasky first */}
-        {tasksLoading ? <TaskListSkeleton /> : <MyTasks tasks={myTasks} />}
+      {/* Co hoří — vykreslí se jen když je co */}
+      {!submissionsLoading && !campsLoading && (
+        <AttentionBanner submissions={submissions} camps={camps} registrations={registrations} />
+      )}
 
-        {/* 2. Stats */}
-        {tasksLoading || eventsLoading || usersLoading ? (
-          <StatsCardsSkeleton />
-        ) : (
-          <StatsCards tasks={tasks} events={events} users={users} />
-        )}
+      {/*
+        Jeden strom pro mobil i desktop. Dřív tu byly dvě větve (lg:hidden
+        a hidden lg:block), takže se každá komponenta mountovala dvakrát.
+        Pořadí na mobilu řídí `order-*`, na desktopu mřížka.
+      */}
+      <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-4 items-start">
+        <div className="order-1 lg:row-span-2">
+          {tasksLoading || eventsLoading ? (
+            <TaskListSkeleton />
+          ) : (
+            <FocusStream tasks={tasks} events={nadchazejiciUdalosti} currentUserId={user?.id} />
+          )}
+        </div>
 
-        {/* 3. Události */}
-        {eventsLoading ? <TaskListSkeleton /> : <UpcomingEvents events={upcomingEvents} />}
-
-        {/* 4. Tábory */}
-        {campsLoading ? <TaskListSkeleton /> : <CampsOverview camps={camps} />}
-
-        {/* 5. Formuláře */}
-        {submissionsLoading ? (
-          <TaskListSkeleton />
-        ) : (
-          <SubmissionsOverview submissions={submissions} newCount={newCount} />
-        )}
-
-        {/* 6. Tým */}
-        {tasksLoading || usersLoading ? (
-          <TaskListSkeleton />
-        ) : (
-          <TeamTasks tasks={tasks} users={users} currentUserId={user?.id} />
-        )}
-      </div>
-
-      {/* === DESKTOP LAYOUT (hidden lg:block) === */}
-      <div className="hidden lg:block space-y-6">
-        {/* Stats */}
-        {tasksLoading || eventsLoading || usersLoading ? (
-          <StatsCardsSkeleton />
-        ) : (
-          <StatsCards tasks={tasks} events={events} users={users} />
-        )}
-
-        {/* Bento Grid */}
-        <div className="grid grid-cols-[3fr_2fr] gap-4">
-          {/* My Tasks — spans 2 rows */}
-          <div className="row-span-2">
-            {tasksLoading ? <TaskListSkeleton /> : <MyTasks tasks={myTasks} />}
-          </div>
-
-          {/* Upcoming Events */}
-          {eventsLoading ? <TaskListSkeleton /> : <UpcomingEvents events={upcomingEvents} />}
-
-          {/* Camps */}
+        <div className="order-2 space-y-4">
+          <SeasonPanel registrations={registrations} byTerm={byTerm} error={regError} />
           {campsLoading ? <TaskListSkeleton /> : <CampsOverview camps={camps} />}
+        </div>
 
-          {/* Bottom row: Submissions + Team */}
+        <div className="order-3 space-y-4">
           {submissionsLoading ? (
             <TaskListSkeleton />
           ) : (
             <SubmissionsOverview submissions={submissions} newCount={newCount} />
           )}
-
           {tasksLoading || usersLoading ? (
             <TaskListSkeleton />
           ) : (
-            <TeamTasks tasks={tasks} users={users} currentUserId={user?.id} />
+            <TeamPanel tasks={tasks} users={users} currentUserId={user?.id} />
           )}
         </div>
       </div>

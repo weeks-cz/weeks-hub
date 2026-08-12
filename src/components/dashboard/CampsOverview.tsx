@@ -21,18 +21,18 @@ export function CampsOverview({ camps }: CampsOverviewProps) {
     <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-4">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold text-[var(--text-primary)] font-[family-name:var(--font-heading)]">
-          Tabory
+          Tábory
         </h3>
         <Link href="/camps" className="text-xs text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] transition-colors">
-          Vsechny tabory →
+          Všechny tábory →
         </Link>
       </div>
 
       {activeCamps.length === 0 ? (
         <EmptyState
           icon={<Tent className="w-5 h-5" />}
-          title="Zadne aktivni tabory"
-          description="Vsechny tabory jsou uzavrene nebo probehnute"
+          title="Žádné nadcházející tábory"
+          description="Všechny turnusy jsou uzavřené nebo už proběhly"
         />
       ) : (
         <div className="space-y-2">
