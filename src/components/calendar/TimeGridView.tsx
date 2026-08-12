@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils/cn';
-import { getWeekDays, isToday, format, toDateKey, formatTime } from '@/lib/utils/date';
+import { isToday, format, toDateKey, formatTime } from '@/lib/utils/date';
 import { rozvrhniPrekryvy, type Interval } from '@/lib/utils/overlap';
 import { EVENT_TYPE_CONFIG, type CalendarEvent } from '@/types/database';
 import type { DayTask } from './DayDetailModal';
@@ -14,8 +14,9 @@ const DEN_PX = 24 * HODINA_PX;
 /** Kam se mřížka odroluje, když v týdnu nic brzkého není. */
 const VYCHOZI_HODINA = 7;
 
-interface WeekViewProps {
-  currentDate: Date;
+interface TimeGridViewProps {
+  /** Dny, které se vykreslí jako sloupce. Týden má sedm, denní pohled jeden. */
+  days: Date[];
   events: CalendarEvent[];
   taskDueDates: DayTask[];
   onEventClick: (event: CalendarEvent) => void;
@@ -34,17 +35,19 @@ function minutyOdPulnoci(iso: string): number {
   return d.getHours() * 60 + d.getMinutes();
 }
 
-export function WeekView({
-  currentDate,
+export function TimeGridView({
+  days,
   events,
   taskDueDates,
   onEventClick,
   onDayClick,
   onTaskClick,
   onSlotClick,
-}: WeekViewProps) {
-  const days = getWeekDays(currentDate);
+}: TimeGridViewProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Tailwind hleda tridy staticky ve zdrojaku, takze pocet sloupcu nejde
+  // slozit z promenne — musi jit inline stylem.
+  const mrizka = { gridTemplateColumns: `56px repeat(${days.length}, minmax(0, 1fr))` };
   const [ted, setTed] = useState(() => new Date());
 
   // Čára "teď" se posouvá po minutě; bez toho by po pár hodinách lhala.
@@ -119,7 +122,7 @@ export function WeekView({
 
   return (
     <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-      <div className="min-w-[760px] rounded-xl border border-[var(--border-default)] overflow-hidden">
+      <div className="rounded-xl border border-[var(--border-default)] overflow-hidden" style={{ minWidth: days.length > 1 ? 760 : undefined }}>
         {/*
           Hlavička i celodenní pruh jsou UVNITŘ rolovacího kontejneru a drží se
           přes sticky. Když byly nad ním, zúžil svislý posuvník jen mřížku pod
@@ -129,7 +132,7 @@ export function WeekView({
         <div ref={scrollRef} className="max-h-[620px] overflow-y-auto">
         <div className="sticky top-0 z-40 bg-[var(--bg-primary)]">
         {/* Hlavička dnů */}
-        <div className="grid grid-cols-[56px_repeat(7,minmax(0,1fr))] border-b border-[var(--border-default)]">
+        <div className="grid border-b border-[var(--border-default)]" style={mrizka}>
           <div className="bg-[var(--bg-surface)]" />
           {days.map((day, idx) => {
             const dnesek = isToday(day);
@@ -159,7 +162,7 @@ export function WeekView({
         </div>
 
         {/* Celodenní pruh — tábory, celodenní události a termíny úkolů */}
-        <div className="grid grid-cols-[56px_repeat(7,minmax(0,1fr))] border-b border-[var(--border-default)]">
+        <div className="grid border-b border-[var(--border-default)]" style={mrizka}>
           <div className="flex items-start justify-end pr-1.5 pt-1.5 text-[10px] text-[var(--text-muted)]">
             celý den
           </div>
@@ -196,7 +199,7 @@ export function WeekView({
         </div>
 
         {/* Časová mřížka */}
-          <div className="grid grid-cols-[56px_repeat(7,minmax(0,1fr))]" style={{ height: DEN_PX }}>
+          <div className="grid" style={{ ...mrizka, height: DEN_PX }}>
             {/* Osa hodin */}
             <div className="relative">
               {Array.from({ length: 24 }, (_, h) => (

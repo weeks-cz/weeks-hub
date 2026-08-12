@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Plus, CalendarPlus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { MonthView } from './MonthView';
-import { WeekView } from './WeekView';
+import { TimeGridView } from './TimeGridView';
 import { CreateEventModal } from './CreateEventModal';
 import { EventDetailModal } from './EventDetailModal';
 import { SubscribeModal } from './SubscribeModal';
@@ -13,11 +13,21 @@ import { DayDetailModal, type DayTask } from './DayDetailModal';
 import { useEvents } from '@/hooks/useEvents';
 import { useTasks } from '@/hooks/useTasks';
 import { useCamps } from '@/hooks/useCamps';
-import { addMonths, subMonths, addWeeks, subWeeks, formatMonthYear, formatWeekRange, toDateKey } from '@/lib/utils/date';
+import { addMonths, subMonths, addWeeks, subWeeks, addDays, formatMonthYear, formatWeekRange, formatDate, getWeekDays, toDateKey } from '@/lib/utils/date';
 import { CalendarSkeleton } from '@/components/ui/Skeleton';
 import { CAMP_STATUS_CONFIG, type CalendarEvent } from '@/types/database';
 
-type ViewMode = 'month' | 'week';
+type ViewMode = 'month' | 'week' | 'day';
+
+/** Co se v kalendáři zobrazuje. Ukládá se, aby volba přežila načtení stránky. */
+interface Filtry {
+  udalosti: boolean;
+  tabory: boolean;
+  ukoly: boolean;
+}
+
+const VYCHOZI_FILTRY: Filtry = { udalosti: true, tabory: true, ukoly: true };
+const KLIC_FILTRU = 'weeks-hub:kalendar-filtry';
 
 export function CalendarView() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -28,6 +38,26 @@ export function CalendarView() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [subscribeOpen, setSubscribeOpen] = useState(false);
   const [dayDetail, setDayDetail] = useState<Date | null>(null);
+  // Čte se až v efektu — na serveru localStorage není a rozdíl mezi
+  // serverovým a prvním klientským renderem by shodil hydrataci.
+  const [filtry, setFiltry] = useState<Filtry>(VYCHOZI_FILTRY);
+
+  useEffect(() => {
+    try {
+      const ulozene = localStorage.getItem(KLIC_FILTRU);
+      if (ulozene) setFiltry({ ...VYCHOZI_FILTRY, ...JSON.parse(ulozene) });
+    } catch {
+      // Poškozená hodnota v localStorage nesmí shodit kalendář.
+    }
+  }, []);
+
+  const prepniFiltr = (klic: keyof Filtry) => {
+    setFiltry((p) => {
+      const dalsi = { ...p, [klic]: !p[klic] };
+      try { localStorage.setItem(KLIC_FILTRU, JSON.stringify(dalsi)); } catch {}
+      return dalsi;
+    });
+  };
   const router = useRouter();
 
   const { events, loading, createEvent, updateEvent, deleteEvent } = useEvents();
@@ -51,7 +81,10 @@ export function CalendarView() {
     }));
   }, [camps]);
 
-  const allEvents = useMemo(() => [...events, ...campEvents], [events, campEvents]);
+  const allEvents = useMemo(() => [
+    ...(filtry.udalosti ? events : []),
+    ...(filtry.tabory ? campEvents : []),
+  ], [events, campEvents, filtry.udalosti, filtry.tabory]);
 
   // Wrap updateEvent to refresh selectedEvent from fresh data
   const handleUpdateEvent = useCallback(async (eventId: string, updates: Partial<CalendarEvent>) => {
@@ -75,16 +108,19 @@ export function CalendarView() {
   }, [router]);
 
   // Get task due dates for calendar
-  const taskDueDates = useMemo<DayTask[]>(() => tasks
+  const taskDueDates = useMemo<DayTask[]>(() => (filtry.ukoly ? tasks : [])
     .filter((t) => t.due_date && t.status !== 'done')
-    .map((t) => ({ date: t.due_date!, title: t.title, id: t.id })), [tasks]);
+    .map((t) => ({ date: t.due_date!, title: t.title, id: t.id })), [tasks, filtry.ukoly]);
 
   // Šipky se dřív hýbaly po měsících i v týdenním pohledu, takže z týdne
   // 10.–16. 8. skočily rovnou na 6.–12. 7. a čtyři týdny se přeskočily.
-  const handlePrev = () =>
-    setCurrentDate((d) => (viewMode === 'week' ? subWeeks(d, 1) : subMonths(d, 1)));
-  const handleNext = () =>
-    setCurrentDate((d) => (viewMode === 'week' ? addWeeks(d, 1) : addMonths(d, 1)));
+  const posun = (d: Date, smer: 1 | -1) => {
+    if (viewMode === 'day') return addDays(d, smer);
+    if (viewMode === 'week') return smer > 0 ? addWeeks(d, 1) : subWeeks(d, 1);
+    return smer > 0 ? addMonths(d, 1) : subMonths(d, 1);
+  };
+  const handlePrev = () => setCurrentDate((d) => posun(d, -1));
+  const handleNext = () => setCurrentDate((d) => posun(d, 1));
   const handleToday = () => setCurrentDate(new Date());
 
   // Klik na den otevře jeho detail. Dřív rovnou zakládal událost, takže se
@@ -135,7 +171,11 @@ export function CalendarView() {
             <ChevronLeft className="w-4 h-4" />
           </Button>
           <h2 className="text-lg font-semibold text-[var(--text-primary)] font-[family-name:var(--font-heading)] min-w-[140px] sm:min-w-[220px] text-center first-letter:uppercase">
-            {viewMode === 'week' ? formatWeekRange(currentDate) : formatMonthYear(currentDate)}
+            {viewMode === 'day'
+              ? formatDate(currentDate)
+              : viewMode === 'week'
+                ? formatWeekRange(currentDate)
+                : formatMonthYear(currentDate)}
           </h2>
           <Button variant="ghost" size="sm" onClick={handleNext}>
             <ChevronRight className="w-4 h-4" />
@@ -150,26 +190,23 @@ export function CalendarView() {
         <div className="flex items-center gap-2">
           {/* View toggle */}
           <div className="flex bg-[var(--bg-surface)] rounded-xl border border-[var(--border-default)] p-0.5">
-            <button
-              onClick={() => setViewMode('month')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                viewMode === 'month'
-                  ? 'bg-[var(--color-primary)] text-white'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              Měsíc
-            </button>
-            <button
-              onClick={() => setViewMode('week')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                viewMode === 'week'
-                  ? 'bg-[var(--color-primary)] text-white'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              Týden
-            </button>
+            {([
+              ['month', 'Měsíc'],
+              ['week', 'Týden'],
+              ['day', 'Den'],
+            ] as const).map(([rezim, popisek]) => (
+              <button
+                key={rezim}
+                onClick={() => setViewMode(rezim)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  viewMode === rezim
+                    ? 'bg-[var(--color-primary)] text-white'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                {popisek}
+              </button>
+            ))}
           </div>
 
           <Button variant="secondary" size="sm" onClick={() => setSubscribeOpen(true)}>
@@ -184,6 +221,40 @@ export function CalendarView() {
         </div>
       </div>
 
+      {/* Filtry — zároveň slouží jako legenda barev */}
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        {([
+          ['udalosti', 'Události', '#818CF8'],
+          ['tabory', 'Tábory', '#34D399'],
+          ['ukoly', 'Úkoly', '#F87171'],
+        ] as const).map(([klic, popisek, barva]) => {
+          const zapnuto = filtry[klic];
+          return (
+            <button
+              key={klic}
+              onClick={() => prepniFiltr(klic)}
+              aria-pressed={zapnuto}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-medium transition-colors ${
+                zapnuto
+                  ? 'border-[var(--border-default)] text-[var(--text-primary)] bg-[var(--bg-surface)]'
+                  : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+              }`}
+            >
+              <span
+                className="w-2 h-2 rounded-full shrink-0"
+                style={{ backgroundColor: zapnuto ? barva : 'transparent', boxShadow: `inset 0 0 0 1px ${barva}` }}
+              />
+              {popisek}
+            </button>
+          );
+        })}
+        <span className="text-[11px] text-[var(--text-muted)] ml-1">
+          Úkoly: <span style={{ color: '#F87171' }}>po termínu</span>
+          {' · '}<span style={{ color: '#FBBF24' }}>dnes</span>
+          {' · '}<span style={{ color: '#A5B4FC' }}>později</span>
+        </span>
+      </div>
+
       {/* Calendar view */}
       {viewMode === 'month' ? (
         <MonthView
@@ -195,8 +266,8 @@ export function CalendarView() {
           onTaskClick={handleTaskClick}
         />
       ) : (
-        <WeekView
-          currentDate={currentDate}
+        <TimeGridView
+          days={viewMode === 'week' ? getWeekDays(currentDate) : [currentDate]}
           events={allEvents}
           taskDueDates={taskDueDates}
           onEventClick={handleEventClick}
