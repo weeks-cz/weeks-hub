@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Upload, X } from 'lucide-react';
+import { Heart, Upload, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
@@ -16,6 +16,8 @@ import { DEFAULT_SHOP_PRODUCT_IMAGE_URL, getSafeShopProductImageUrl } from '@/li
 
 interface ShopProductModalProps {
   product: ShopProduct | null;
+  /** Kolik lidi u produktu projevilo zajem pres web. */
+  zajem?: number;
   isOpen: boolean;
   onClose: () => void;
   onCreate: (product: ShopProductInput) => Promise<unknown>;
@@ -73,6 +75,7 @@ function textToArray(value: string) {
 
 export function ShopProductModal({
   product,
+  zajem = 0,
   isOpen,
   onClose,
   onCreate,
@@ -239,6 +242,19 @@ export function ShopProductModal({
     <>
       <Modal isOpen={isOpen} onClose={onClose} title={product ? 'Upravit produkt' : 'Nový produkt'} size="lg">
         <div className="space-y-5">
+          {/* Cislo na karte vyvolava otazku "kdo?" — odsud na ni jde odpovedet. */}
+          {product && zajem > 0 && (
+            <a
+              href={`/formulare?hledat=${encodeURIComponent(product.name)}`}
+              className="flex items-center gap-2 rounded-xl border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/10 px-4 py-3 text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--color-primary)]/20"
+            >
+              <Heart className="h-4 w-4 shrink-0 text-[var(--color-primary)]" />
+              <span>
+                <strong>{zajem}×</strong> projevený zájem z webu
+              </span>
+              <span className="ml-auto text-xs text-[var(--text-muted)]">Zobrazit poptávky &rarr;</span>
+            </a>
+          )}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Input label="Název" value={form.name} onChange={(event) => handleNameChange(event.target.value)} required autoFocus />
             <Input label="Slug" value={form.slug} onChange={(event) => updateForm('slug', slugify(event.target.value))} required />

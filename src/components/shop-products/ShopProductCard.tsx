@@ -1,6 +1,6 @@
 'use client';
 
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Heart } from 'lucide-react';
 import type { ShopProduct } from '@/types/database';
 import { SHOP_PRODUCT_TYPE_CONFIG } from '@/types/database';
 import { getSafeShopProductImageUrl } from '@/lib/shopProductImages';
@@ -8,9 +8,11 @@ import { getSafeShopProductImageUrl } from '@/lib/shopProductImages';
 interface ShopProductCardProps {
   product: ShopProduct;
   onClick: () => void;
+  /** Kolik lidí u tohohle produktu projevilo zájem přes web. */
+  zajem?: number;
 }
 
-export function ShopProductCard({ product, onClick }: ShopProductCardProps) {
+export function ShopProductCard({ product, onClick, zajem = 0 }: ShopProductCardProps) {
   const typeConfig = SHOP_PRODUCT_TYPE_CONFIG[product.type];
   const imageUrl = getSafeShopProductImageUrl(product.image_url);
 
@@ -38,6 +40,17 @@ export function ShopProductCard({ product, onClick }: ShopProductCardProps) {
         >
           {typeConfig.label}
         </span>
+        {/* Katalog dosud nevěděl, o co lidi na webu projevili zájem — a přitom
+            právě podle toho se rozhoduje, která sada se bude dělat první. */}
+        {zajem > 0 && (
+          <span
+            className="absolute left-3 bottom-3 inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-semibold bg-black/60 text-white backdrop-blur-sm"
+            title={`${zajem}× projevený zájem z webu`}
+          >
+            <Heart className="h-3 w-3" />
+            {zajem}
+          </span>
+        )}
         <span className="absolute right-3 top-3 rounded-lg bg-black/60 p-1.5 text-white">
           {product.published ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
         </span>

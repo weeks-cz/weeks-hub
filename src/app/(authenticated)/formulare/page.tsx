@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { FileText, Inbox } from 'lucide-react';
 import { useFormSubmissions } from '@/hooks/useFormSubmissions';
@@ -16,12 +17,15 @@ import { SearchInput } from '@/components/ui/SearchInput';
 type StatusFilter = 'all' | FormSubmissionStatus;
 type TypeFilter = 'all' | FormSubmissionType;
 
-export default function FormularePage() {
+function FormulareObsah() {
+  const dotazZUrl = useSearchParams().get('hledat') ?? '';
   const { submissions, loading, updateStatus, updateNotes, deleteSubmission } = useFormSubmissions();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [programFilter, setProgramFilter] = useState<string>('all');
-  const [hledani, setHledani] = useState('');
+  // Odkaz z e-shopu ("Zobrazit poptavky") predava hledany vyraz v ?hledat=.
+  // Jde jen o pocatecni hodnotu — dal uz pole patri cloveku, ktery v nem pise.
+  const [hledani, setHledani] = useState(dotazZUrl);
   const [selectedSubmission, setSelectedSubmission] = useState<FormSubmission | null>(null);
 
   const filtered = useMemo(() => {
@@ -204,5 +208,17 @@ export default function FormularePage() {
         onDelete={deleteSubmission}
       />
     </div>
+  );
+}
+
+/**
+ * useSearchParams() musi byt pod Suspense, jinak by se cela stranka pri buildu
+ * prepnula do klientskeho vykreslovani.
+ */
+export default function FormularePage() {
+  return (
+    <Suspense fallback={<TaskListSkeleton />}>
+      <FormulareObsah />
+    </Suspense>
   );
 }
