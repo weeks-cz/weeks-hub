@@ -1,105 +1,134 @@
 'use client';
 
 import Link from 'next/link';
-import { Users, Tent, FileText, Shield } from 'lucide-react';
+import { Users, Shield, GraduationCap, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUsers } from '@/hooks/useUsers';
-import { useCamps } from '@/hooks/useCamps';
-import { useFormSubmissions } from '@/hooks/useFormSubmissions';
 import { isAdmin } from '@/lib/utils/roles';
 import { LoadingPage } from '@/components/ui/LoadingSpinner';
-import { ROLE_CONFIG } from '@/types/database';
+import { NemasOpravneni } from '@/components/ui/NemasOpravneni';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { ROLE_CONFIG } from '@/types/database';
+import type { UserRole } from '@/types/database';
+
+/** Od nejsilnější role po nejslabší — v tomhle pořadí se vypisují. */
+const PORADI_ROLI: UserRole[] = ['developer', 'admin', 'member'];
+
+const NASTROJE = [
+  {
+    href: '/admin/users',
+    icon: Users,
+    title: 'Správa uživatelů',
+    popis: 'Role, profily a odebrání přístupu',
+  },
+  {
+    href: '/admin/learning',
+    icon: GraduationCap,
+    title: 'Learning',
+    popis: 'Účty a aktivita ve výukové aplikaci',
+  },
+];
 
 export default function AdminPage() {
   const { user, loading: authLoading } = useAuth();
   const { users, loading: usersLoading } = useUsers();
-  const { camps, loading: campsLoading } = useCamps();
-  const { submissions, newCount, loading: submissionsLoading } = useFormSubmissions();
 
   if (authLoading) return <LoadingPage />;
-  if (!user || !isAdmin(user.role)) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <p className="text-[var(--text-muted)]">Nemáš oprávnění pro tuto sekci.</p>
-      </div>
-    );
-  }
+  if (!user || !isAdmin(user.role)) return <NemasOpravneni sekce="Administrace" />;
 
-  const loading = usersLoading || campsLoading || submissionsLoading;
-
-  const roleCounts = users.reduce((acc, u) => {
-    acc[u.role] = (acc[u.role] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const stats = [
-    {
-      label: 'Uživatelé',
-      value: users.length,
-      icon: Users,
-      color: 'var(--color-primary)',
-      href: '/admin/users',
-      detail: Object.entries(roleCounts).map(([role, count]) => `${count} ${ROLE_CONFIG[role as keyof typeof ROLE_CONFIG]?.label || role}`).join(', '),
-    },
-    {
-      label: 'Tábory',
-      value: camps.length,
-      icon: Tent,
-      color: 'var(--color-trust)',
-      href: '/camps',
-      detail: `${camps.filter(c => c.status !== 'closed').length} aktivních`,
-    },
-    {
-      label: 'Formuláře',
-      value: submissions.length,
-      icon: FileText,
-      color: 'var(--color-cta)',
-      href: '/formulare',
-      detail: newCount > 0 ? `${newCount} nových` : 'Vše zpracováno',
-    },
-  ];
+  const podleRole = PORADI_ROLI.map((role) => ({
+    role,
+    lide: users.filter((u) => u.role === role),
+  })).filter((skupina) => skupina.lide.length > 0);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <PageHeader icon={Shield} title="Administrace" subtitle="Správa uživatelů a přehled systému" />
+    <div className="mx-auto max-w-4xl space-y-6">
+      <PageHeader
+        icon={Shield}
+        title="Administrace"
+        subtitle="Kdo má do hubu přístup a s jakými právy"
+      />
 
-      {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-6 animate-pulse">
-              <div className="w-10 h-10 rounded-xl bg-[var(--bg-surface-hover)] mb-4" />
-              <div className="h-8 w-16 bg-[var(--bg-surface-hover)] rounded mb-2" />
-              <div className="h-4 w-24 bg-[var(--bg-surface-hover)] rounded" />
-            </div>
-          ))}
+      {/* Dřív tu byly dlaždice s počtem táborů a formulářů — tatáž čísla, jaká
+          jsou na dashboardu i v levém menu. Zbylo to, co jinde není: kdo je
+          uvnitř. */}
+      <section className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-5">
+        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="font-[family-name:var(--font-heading)] text-sm font-semibold text-[var(--text-primary)]">
+            Přístupy
+          </h2>
+          <Link
+            href="/admin/users"
+            className="text-xs font-medium text-[var(--color-primary)] hover:underline"
+          >
+            Spravovat
+          </Link>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {stats.map((stat) => {
-            const Icon = stat.icon;
-            return (
-              <Link
-                key={stat.label}
-                href={stat.href}
-                className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-6 hover:border-[var(--color-primary)]/30 transition-colors group"
-              >
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
-                  style={{ backgroundColor: `${stat.color}15` }}
-                >
-                  <Icon className="w-5 h-5" style={{ color: stat.color }} />
+
+        {usersLoading ? (
+          <div className="space-y-3">
+            {[1, 2].map((i) => (
+              <div key={i} className="h-12 animate-pulse rounded-xl bg-[var(--bg-surface-hover)]" />
+            ))}
+          </div>
+        ) : podleRole.length === 0 ? (
+          <p className="text-sm text-[var(--text-muted)]">Zatím tu není žádný účet.</p>
+        ) : (
+          <div className="space-y-4">
+            {podleRole.map(({ role, lide }) => (
+              <div key={role}>
+                <div className="mb-2 flex items-center gap-2">
+                  <span
+                    className="rounded-md px-2 py-0.5 text-xs font-medium"
+                    style={{
+                      backgroundColor: `${ROLE_CONFIG[role].color}20`,
+                      color: ROLE_CONFIG[role].color,
+                    }}
+                  >
+                    {ROLE_CONFIG[role].label}
+                  </span>
+                  <span className="text-xs text-[var(--text-muted)]">
+                    {lide.length} {lide.length === 1 ? 'účet' : lide.length <= 4 ? 'účty' : 'účtů'}
+                  </span>
                 </div>
-                <p className="text-3xl font-bold text-[var(--text-primary)] font-[family-name:var(--font-heading)]">
-                  {stat.value}
-                </p>
-                <p className="text-sm text-[var(--text-secondary)] mt-1">{stat.label}</p>
-                <p className="text-xs text-[var(--text-muted)] mt-0.5">{stat.detail}</p>
-              </Link>
-            );
-          })}
-        </div>
-      )}
+                <ul className="flex flex-wrap gap-2">
+                  {lide.map((u) => (
+                    <li
+                      key={u.id}
+                      className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-1.5 text-sm text-[var(--text-secondary)]"
+                      title={u.email}
+                    >
+                      {u.full_name || u.email}
+                      {u.id === user.id && (
+                        <span className="ml-1.5 text-xs text-[var(--text-muted)]">(ty)</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {NASTROJE.map(({ href, icon: Icon, title, popis }) => (
+          <Link
+            key={href}
+            href={href}
+            className="group rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-5 transition-colors hover:border-[var(--color-primary)]/30"
+          >
+            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-primary)]/10">
+              <Icon className="h-5 w-5 text-[var(--color-primary)]" />
+            </div>
+            <p className="flex items-center gap-1.5 font-medium text-[var(--text-primary)]">
+              {title}
+              <ArrowRight className="h-4 w-4 text-[var(--text-muted)] transition-transform group-hover:translate-x-0.5" />
+            </p>
+            <p className="mt-0.5 text-sm text-[var(--text-muted)]">{popis}</p>
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }

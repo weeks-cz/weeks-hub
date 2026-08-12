@@ -242,6 +242,24 @@ export async function GET(request: Request) {
     return NextResponse.json(responseData);
   } catch (error) {
     console.error('Meta Campaigns API error:', error);
+    // Meta tokeny platí zhruba 60 dní a pak tiše přestanou fungovat. Bez
+    // rozlišení skončila i tahle úplně běžná situace jako "něco se nepovedlo",
+    // takže nikdo nevěděl, že stačí vygenerovat nový token.
+    const zprava = error instanceof Error ? error.message : '';
+    const vyprselyToken =
+      zprava.includes('"code":190') ||
+      zprava.includes('Session has expired') ||
+      zprava.includes('access token');
+    if (vyprselyToken) {
+      return NextResponse.json(
+        {
+          error:
+            'Přístupový token Mety vypršel. Vygenerujte nový v Meta Business Suite a přepište proměnnou META_ACCESS_TOKEN.',
+          duvod: 'token',
+        },
+        { status: 502 }
+      );
+    }
     return NextResponse.json(
       { error: 'Nepodařilo se načíst data z Meta API' },
       { status: 500 }

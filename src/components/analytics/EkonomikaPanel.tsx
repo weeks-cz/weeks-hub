@@ -13,6 +13,8 @@ const czk = new Intl.NumberFormat('cs-CZ', {
 
 interface EkonomikaPanelProps {
   meta: MetaCampaignsData | null;
+  /** Meta API neodpovědělo — útrata pak není neznámá nulou, ale neznámou. */
+  metaChyba?: string | null;
   registrations: Registration[];
   /** Registrace se nenačetly (chybí práva nebo výpadek) — tržby pak neuvádíme. */
   bezRegistraci?: boolean;
@@ -28,7 +30,7 @@ interface EkonomikaPanelProps {
  * Vědomě se porovnává celá doba, ne posledních 7 dní: kampaň běží po vlnách a
  * registrace chodí se zpožděním, takže týdenní řez by dával nesmyslné poměry.
  */
-export function EkonomikaPanel({ meta, registrations, bezRegistraci }: EkonomikaPanelProps) {
+export function EkonomikaPanel({ meta, metaChyba, registrations, bezRegistraci }: EkonomikaPanelProps) {
   // Řádky kampaní chodí z Meta API za celou dobu jejich běhu (date_preset=maximum),
   // takže jejich součet je útrata od začátku — ne za posledních 7 dní.
   const utrata = meta?.campaigns.reduce((soucet, k) => soucet + k.spend, 0) ?? 0;
@@ -48,7 +50,7 @@ export function EkonomikaPanel({ meta, registrations, bezRegistraci }: Ekonomika
     {
       label: 'Útrata za reklamu',
       hodnota: utrata > 0 ? czk.format(utrata) : '—',
-      popis: 'Meta, od začátku kampaní',
+      popis: metaChyba ? 'Meta API neodpovídá' : 'Meta, od začátku kampaní',
       icon: Coins,
       barva: '#1877F2',
     },
@@ -69,7 +71,11 @@ export function EkonomikaPanel({ meta, registrations, bezRegistraci }: Ekonomika
     {
       label: 'Náklad na registraci',
       hodnota: nakladNaRegistraci ? czk.format(nakladNaRegistraci) : '—',
-      popis: navratnost ? `Za 1 Kč reklamy ${navratnost.toFixed(1)} Kč tržeb` : 'Chybí útrata nebo registrace',
+      popis: navratnost
+        ? `Za 1 Kč reklamy ${navratnost.toFixed(1)} Kč tržeb`
+        : metaChyba
+          ? 'Spočítá se, až bude útrata dostupná'
+          : 'Chybí útrata nebo registrace',
       icon: Scale,
       barva: 'var(--color-primary)',
     },

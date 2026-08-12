@@ -103,8 +103,35 @@ function TrendIndicator({ value, lepsiJeMene }: { value: number; lepsiJeMene?: b
 
 function MetaSection({ data, loading, error }: { data: MetaCampaignsData | null; loading: boolean; error: string | null }) {
   const isSetupError = error?.includes('META_ACCESS_TOKEN') || error?.includes('nakonfigurov');
+  // Vypršelý token není chyba nastavení ani výpadek — je to pravidelná údržba
+  // a patří k ní návod, ne jen konstatování, že se něco nepovedlo.
+  const vyprselyToken = error?.includes('vypršel');
 
   if (!loading && error) {
+    if (vyprselyToken) {
+      return (
+        <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-8 text-center space-y-3">
+          <div className="w-12 h-12 rounded-xl bg-[#1877F2]/10 flex items-center justify-center mx-auto">
+            <Megaphone className="w-6 h-6 text-[#1877F2]" />
+          </div>
+          <h3 className="text-sm font-semibold text-[var(--text-primary)] font-[family-name:var(--font-heading)]">
+            Vypršel přístup k Meta Ads
+          </h3>
+          <p className="text-sm text-[var(--text-muted)] max-w-md mx-auto">
+            Tokeny Mety platí zhruba dva měsíce. Vygenerujte nový v Meta Business Suite
+            a přepište proměnnou <span className="font-mono text-xs">META_ACCESS_TOKEN</span> ve Vercelu.
+          </p>
+          <a
+            href="https://business.facebook.com/settings"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1877F2] text-white text-sm font-medium hover:opacity-90 transition-opacity"
+          >
+            Otevřít Meta Business Suite
+          </a>
+        </div>
+      );
+    }
     if (isSetupError) {
       return (
         <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-8 text-center space-y-3">
@@ -442,6 +469,7 @@ export default function AnalyticsPage() {
 
       <EkonomikaPanel
         meta={metaData}
+        metaChyba={metaError}
         registrations={registrations}
         bezRegistraci={!!registraceError}
       />
