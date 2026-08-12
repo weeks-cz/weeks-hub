@@ -124,7 +124,7 @@ export function CalendarView() {
           <Button variant="ghost" size="sm" onClick={handlePrev}>
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          <h2 className="text-lg font-semibold text-[var(--text-primary)] font-[family-name:var(--font-heading)] min-w-[140px] sm:min-w-[200px] text-center capitalize">
+          <h2 className="text-lg font-semibold text-[var(--text-primary)] font-[family-name:var(--font-heading)] min-w-[140px] sm:min-w-[220px] text-center first-letter:uppercase">
             {viewMode === 'week' ? formatWeekRange(currentDate) : formatMonthYear(currentDate)}
           </h2>
           <Button variant="ghost" size="sm" onClick={handleNext}>
