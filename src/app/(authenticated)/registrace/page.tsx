@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Users, RefreshCw } from 'lucide-react';
+import { Users, RefreshCw, ClipboardList } from 'lucide-react';
 import { useRegistrations } from '@/hooks/useRegistrations';
 import { useAuth } from '@/contexts/AuthContext';
 import { isAdmin } from '@/lib/utils/roles';
@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils/cn';
 import { obsahuje } from '@/lib/utils/text';
 import { vyzadujePozornost } from '@/lib/utils/registrace';
 import { SearchInput } from '@/components/ui/SearchInput';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 const STATUS_FILTERS: { value: 'all' | RegistrationStatus; label: string }[] = [
   { value: 'all', label: 'Vše' },
@@ -66,9 +67,11 @@ export default function RegistracePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-[var(--text-primary)]">Registrace</h1>
-        <div className="flex flex-wrap items-center gap-2">
+      <PageHeader
+        icon={ClipboardList}
+        title="Registrace"
+        actions={
+          <>
           <SearchInput
             value={hledani}
             onChange={setHledani}
@@ -112,8 +115,9 @@ export default function RegistracePage() {
           >
             <RefreshCw className="w-4 h-4" />
           </button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {loading ? (
         <TaskListSkeleton />

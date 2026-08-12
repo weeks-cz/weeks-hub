@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { Send } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import type { User } from '@/types/database';
 import { cn } from '@/lib/utils/cn';
+import { obsahuje } from '@/lib/utils/text';
 
 interface CommentInputProps {
   onSubmit: (content: string) => void;
@@ -19,10 +20,9 @@ export function CommentInput({ onSubmit, users }: CommentInputProps) {
   const [mentionQuery, setMentionQuery] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Po zavináči nikdo nepíše háčky — „@stepan" musí najít Štěpána.
   const filteredUsers = mentionQuery
-    ? users.filter((u) =>
-        u.full_name.toLowerCase().includes(mentionQuery.toLowerCase()) && u.id !== user?.id
-      )
+    ? users.filter((u) => obsahuje(u.full_name, mentionQuery) && u.id !== user?.id)
     : users.filter((u) => u.id !== user?.id);
 
   const handleChange = (value: string) => {

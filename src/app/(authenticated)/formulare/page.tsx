@@ -13,6 +13,7 @@ import type { FormSubmission, FormSubmissionStatus, FormSubmissionType } from '@
 import { FORM_STATUS_CONFIG, FORM_TYPE_CONFIG, PROGRAM_CONFIG } from '@/types/database';
 import { obsahuje } from '@/lib/utils/text';
 import { SearchInput } from '@/components/ui/SearchInput';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 type StatusFilter = 'all' | FormSubmissionStatus;
 type TypeFilter = 'all' | FormSubmissionType;
@@ -79,22 +80,11 @@ function FormulareObsah() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[var(--color-primary)]/10 flex items-center justify-center">
-            <FileText className="w-5 h-5 text-[var(--color-primary)]" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-[var(--text-primary)] font-[family-name:var(--font-heading)]">
-              Formuláře
-            </h2>
-            <p className="text-sm text-[var(--text-muted)]">
-              Waitlist, kontaktní formuláře a zájmy z e-shopu
-            </p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        icon={FileText}
+        title="Formuláře"
+        subtitle="Waitlist, kontaktní formuláře a zájmy z e-shopu"
+      />
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">

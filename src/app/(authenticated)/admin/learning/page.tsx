@@ -142,8 +142,15 @@ export default async function LearningStatsPage() {
           </span>
         </div>
 
-        {/* Sloupce místo dřívějšího ASCII grafu v <pre>. Bez knihovny, takže
-            to jde vykreslit rovnou na serveru. */}
+        {/* Prázdný graf je jen pruh nul přes celou šířku — když se za měsíc
+            nikdo nepřipojil, řekne se to větou. */}
+        {stats.signupyCelkem === 0 ? (
+          <p className="text-sm text-[var(--text-muted)]">
+            Za posledních {DNU_ZPET} dní se nepřipojil žádný nový účet. Nové vznikají PINem
+            z tábora nebo registrací na webu.
+          </p>
+        ) : (
+          <>
         <div className="flex h-28 items-end gap-[3px]" role="img" aria-label={`Nové účty po dnech, celkem ${stats.signupyCelkem} za ${DNU_ZPET} dní`}>
           {stats.dny.map(({ klic, datum, pocet }) => (
             <div
@@ -166,6 +173,8 @@ export default async function LearningStatsPage() {
           <span>{formatDen.format(stats.dny[0]!.datum)}</span>
           <span>dnes</span>
         </div>
+          </>
+        )}
       </section>
 
       <section className="overflow-hidden rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)]">
