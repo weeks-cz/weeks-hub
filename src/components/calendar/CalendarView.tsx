@@ -24,6 +24,7 @@ export function CalendarView() {
   const [viewMode, setViewMode] = useState<ViewMode>('month');
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>('');
+  const [selectedTime, setSelectedTime] = useState<string>('');
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [subscribeOpen, setSubscribeOpen] = useState(false);
   const [dayDetail, setDayDetail] = useState<Date | null>(null);
@@ -97,9 +98,17 @@ export function CalendarView() {
   const handleCreateFromDay = () => {
     if (!dayDetail) return;
     setSelectedDate(toDateKey(dayDetail));
+    setSelectedTime('');
     setDayDetail(null);
     setCreateModalOpen(true);
   };
+
+  // Klik do prázdna v týdenní mřížce zakládá událost rovnou na ten čas.
+  const handleSlotClick = useCallback((date: Date, cas: string) => {
+    setSelectedDate(toDateKey(date));
+    setSelectedTime(cas);
+    setCreateModalOpen(true);
+  }, []);
 
   // Obsah otevřeného dne — stejná pravidla filtrování jako v mřížce.
   const dayDetailKey = dayDetail ? toDateKey(dayDetail) : null;
@@ -165,7 +174,7 @@ export function CalendarView() {
             <span className="hidden sm:inline ml-1.5">Připojit do kalendáře</span>
           </Button>
 
-          <Button size="sm" onClick={() => { setSelectedDate(''); setCreateModalOpen(true); }}>
+          <Button size="sm" onClick={() => { setSelectedDate(''); setSelectedTime(''); setCreateModalOpen(true); }}>
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">Nová událost</span>
           </Button>
@@ -190,6 +199,7 @@ export function CalendarView() {
           onEventClick={handleEventClick}
           onDayClick={handleDayClick}
           onTaskClick={handleTaskClick}
+          onSlotClick={handleSlotClick}
         />
       )}
 
@@ -199,6 +209,7 @@ export function CalendarView() {
         onClose={() => setCreateModalOpen(false)}
         onSubmit={createEvent}
         defaultDate={selectedDate}
+        defaultTime={selectedTime}
       />
 
       <EventDetailModal

@@ -26,9 +26,11 @@ interface CreateEventModalProps {
     all_day?: boolean;
   }) => Promise<unknown>;
   defaultDate?: string;
+  /** Čas z kliknutí do týdenní mřížky, formát HH:MM. */
+  defaultTime?: string;
 }
 
-export function CreateEventModal({ isOpen, onClose, onSubmit, defaultDate }: CreateEventModalProps) {
+export function CreateEventModal({ isOpen, onClose, onSubmit, defaultDate, defaultTime }: CreateEventModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [eventType, setEventType] = useState<EventType>('meeting');
@@ -52,11 +54,14 @@ export function CreateEventModal({ isOpen, onClose, onSubmit, defaultDate }: Cre
     setDescription('');
     setEventType('meeting');
     setStartDate(defaultDate || '');
-    setStartTime('09:00');
+    const zacatek = defaultTime || '09:00';
+    setStartTime(zacatek);
     setEndDate('');
-    setEndTime('10:00');
+    // Konec o hodinu dál, ať se nemusí vyplňovat ručně.
+    const [h, m] = zacatek.split(':').map(Number);
+    setEndTime(`${String((h + 1) % 24).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
     setAllDay(false);
-  }, [isOpen, defaultDate]);
+  }, [isOpen, defaultDate, defaultTime]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
