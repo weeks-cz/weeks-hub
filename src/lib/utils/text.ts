@@ -13,8 +13,18 @@ export function bezDiakritiky(text: string): string {
     .toLowerCase();
 }
 
-/** Obsahuje `text` hledaný výraz? Ignoruje diakritiku i velikost písmen. */
+/**
+ * Obsahuje `text` hledaný výraz? Ignoruje diakritiku, velikost písmen
+ * i pořadí slov — každé napsané slovo se musí v textu vyskytnout.
+ *
+ * Pořadí slov je důležitější, než se zdá: „dohoda stepan" má najít
+ * „Task 2: Dohoda se Štěpánem", i když ta slova nejdou po sobě. Stejný
+ * přístup používá i vyhledávání v sekci Děti, odkud je převzatý.
+ */
 export function obsahuje(text: string | null | undefined, vyraz: string): boolean {
   if (!text) return false;
-  return bezDiakritiky(text).includes(bezDiakritiky(vyraz));
+  const slova = bezDiakritiky(vyraz).split(/\s+/).filter(Boolean);
+  if (slova.length === 0) return true;
+  const cil = bezDiakritiky(text);
+  return slova.every((slovo) => cil.includes(slovo));
 }

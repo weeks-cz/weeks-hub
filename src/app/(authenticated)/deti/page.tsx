@@ -34,6 +34,11 @@ export default function DetiPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [jenVracejici, setJenVracejici] = useState(false);
+  const [razeni, setRazeni] = useState<{ sloupec: 'jmeno' | 'vek' | 'navstev'; sestupne: boolean }>({
+    sloupec: 'jmeno',
+    sestupne: false,
+  });
 
   const filtered = useMemo(() => {
     // Reuse the matching normaliser so "novak jan" finds "Jan Novák" —
@@ -46,6 +51,24 @@ export default function DetiPage() {
       return tokens.every((token) => name.includes(token));
     });
   }, [children, search]);
+
+  // Retence je nejslabší číslo firmy — z patnácti rodin se vrátily dvě. Sloupec
+  // s počtem návštěv tu byl odjakživa, ale nešlo podle něj řadit ani filtrovat,
+  // takže tu informaci nikdo nepřečetl.
+  const vraceli = children.filter((c) => (c.visit_count ?? 0) > 1).length;
+
+  const zobrazene = useMemo(() => {
+    const seznam = jenVracejici ? filtered.filter((c) => (c.visit_count ?? 0) > 1) : filtered;
+    const smer = razeni.sestupne ? -1 : 1;
+    return [...seznam].sort((a, b) => {
+      if (razeni.sloupec === 'navstev') return ((a.visit_count ?? 0) - (b.visit_count ?? 0)) * smer;
+      if (razeni.sloupec === 'vek') return (a.birthdate ?? '').localeCompare(b.birthdate ?? '') * smer;
+      return a.full_name.localeCompare(b.full_name, 'cs') * smer;
+    });
+  }, [filtered, jenVracejici, razeni]);
+
+  const prepniRazeni = (sloupec: 'jmeno' | 'vek' | 'navstev') =>
+    setRazeni((r) => ({ sloupec, sestupne: r.sloupec === sloupec ? !r.sestupne : sloupec === 'navstev' }));
 
   // Keep the panel bound to fresh data after an edit rather than a stale copy.
   const selected = selectedId ? children.find((c) => c.id === selectedId) ?? null : null;
@@ -110,21 +133,35 @@ export default function DetiPage() {
         }
       />
 
-      <SearchInput
-        value={search}
-        onChange={setSearch}
-        placeholder="Hledat podle jména…"
-        className="max-w-sm"
-      />
+      <div className="flex flex-wrap items-center gap-2">
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Hledat podle jména…"
+          className="w-full sm:max-w-sm"
+        />
+        {vraceli > 0 && (
+          <button
+            onClick={() => setJenVracejici((v) => !v)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              jenVracejici
+                ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
+                : 'text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)]'
+            }`}
+          >
+            Vrátili se <span className="tabular-nums">{vraceli}</span>
+          </button>
+        )}
+      </div>
 
       {loading ? (
         <TaskListSkeleton />
       ) : error ? (
         <EmptyState icon={<Baby className="w-6 h-6" />} title="Načtení selhalo" description={error} />
-      ) : filtered.length === 0 ? (
+      ) : zobrazene.length === 0 ? (
         <EmptyState
           icon={<Baby className="w-6 h-6" />}
-          title={children.length === 0 ? 'Zatím tu nikdo není' : 'Nikdo nenalezen'}
+          title={children.length === 0 ? 'Zatím tu nikdo není' : jenVracejici ? 'Nikdo se zatím nevrátil podruhé' : 'Nikdo nenalezen'}
           description={
             children.length === 0
               ? 'Načtěte děti z registrací, naimportujte soupisku z Excelu nebo přidejte dítě ručně.'
@@ -136,15 +173,27 @@ export default function DetiPage() {
           <table className="w-full text-sm min-w-[640px]">
             <thead>
               <tr className="text-left text-xs text-[var(--text-muted)] border-b border-[var(--border-default)]">
-                <th className="px-4 py-3 font-medium">Jméno</th>
-                <th className="px-4 py-3 font-medium">Věk</th>
-                <th className="px-4 py-3 font-medium">Návštěv</th>
+                <th className="px-4 py-3 font-medium">
+                  <button onClick={() => prepniRazeni('jmeno')} className="hover:text-[var(--text-primary)] transition-colors">
+                    Jméno {razeni.sloupec === 'jmeno' && (razeni.sestupne ? '▾' : '▴')}
+                  </button>
+                </th>
+                <th className="px-4 py-3 font-medium">
+                  <button onClick={() => prepniRazeni('vek')} className="hover:text-[var(--text-primary)] transition-colors">
+                    Věk {razeni.sloupec === 'vek' && (razeni.sestupne ? '▾' : '▴')}
+                  </button>
+                </th>
+                <th className="px-4 py-3 font-medium">
+                  <button onClick={() => prepniRazeni('navstev')} className="hover:text-[var(--text-primary)] transition-colors">
+                    Návštěv {razeni.sloupec === 'navstev' && (razeni.sestupne ? '▾' : '▴')}
+                  </button>
+                </th>
                 <th className="px-4 py-3 font-medium">Poslední tábor</th>
                 <th className="px-4 py-3 font-medium">Zdroj</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((child: Child) => {
+              {zobrazene.map((child: Child) => {
                 const source = CHILD_SOURCE_CONFIG[child.source];
                 const lastVisit = child.visits?.find((v) => v.visit_date);
 
@@ -152,6 +201,12 @@ export default function DetiPage() {
                   <tr
                     key={child.id}
                     onClick={() => setSelectedId(child.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') setSelectedId(child.id);
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={child.full_name}
                     className="border-b border-[var(--border-default)] last:border-0 cursor-pointer hover:bg-[var(--bg-surface-hover)] transition-colors"
                   >
                     <td className="px-4 py-3 text-[var(--text-primary)] font-medium">{child.full_name}</td>
