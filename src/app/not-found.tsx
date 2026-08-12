@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { Compass } from 'lucide-react';
 
 /**
@@ -12,8 +11,6 @@ import { Compass } from 'lucide-react';
 export default function NotFound() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[var(--bg-primary)] px-6 text-center">
-      <Image src="/weeks-logo.png" alt="" width={44} height={44} className="rounded-lg opacity-80" />
-
       <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--bg-surface)]">
         <Compass className="h-7 w-7 text-[var(--text-muted)]" />
       </div>
