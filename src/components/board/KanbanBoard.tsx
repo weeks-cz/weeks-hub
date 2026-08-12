@@ -81,7 +81,12 @@ export function KanbanBoard() {
   const dotaz = hledani.trim();
 
   const sloupec = (status: TaskStatus): Task[] => {
-    let seznam = getTasksByStatus(status);
+    // Board normálně ukazuje jen kořenové karty. Při hledání se ale prohledávají
+    // i podúkoly — jinak by desítky úkolů zanořených pod plánem nešlo najít
+    // vůbec a hledání by lhalo, že nic takového neexistuje.
+    let seznam = dotaz
+      ? tasks.filter((t) => t.status === status).sort((a, b) => a.position - b.position)
+      : getTasksByStatus(status);
     if (labelId) seznam = seznam.filter((t) => t.labels?.some((l) => l.id === labelId));
     if (dotaz) {
       seznam = seznam.filter((t) => obsahuje(t.title, dotaz) || obsahuje(t.description, dotaz));
