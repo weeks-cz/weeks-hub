@@ -1,4 +1,4 @@
-import { format, formatDistanceToNow, isToday, isTomorrow, isYesterday, startOfWeek, endOfWeek, eachDayOfInterval, startOfMonth, endOfMonth, addMonths, subMonths, isSameDay, isSameMonth, isWithinInterval, parseISO, addDays } from 'date-fns';
+import { format, formatDistanceToNow, isToday, isTomorrow, isYesterday, startOfWeek, endOfWeek, eachDayOfInterval, startOfMonth, endOfMonth, addMonths, subMonths, addWeeks, subWeeks, isSameDay, isSameMonth, isWithinInterval, parseISO, addDays } from 'date-fns';
 import { cs } from 'date-fns/locale';
 
 const locale = cs;
@@ -74,4 +74,18 @@ export function toDateKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
-export { addMonths, subMonths, isSameDay, isSameMonth, isToday, parseISO, format, isWithinInterval, startOfMonth, endOfMonth, addDays };
+export { addMonths, subMonths, addWeeks, subWeeks, isSameDay, isSameMonth, isToday, parseISO, format, isWithinInterval, startOfMonth, endOfMonth, addDays };
+
+/**
+ * Rozsah týdne pro hlavičku, např. "10. – 16. srpna 2026".
+ * Týdenní pohled dosud zobrazoval jen název měsíce, což u týdne přes
+ * přelom měsíce vůbec neodpovídalo tomu, co bylo v mřížce.
+ */
+export function formatWeekRange(date: Date): string {
+  const zacatek = startOfWeek(date, { weekStartsOn: 1 });
+  const konec = endOfWeek(date, { weekStartsOn: 1 });
+  const stejnyMesic = zacatek.getMonth() === konec.getMonth() && zacatek.getFullYear() === konec.getFullYear();
+  return stejnyMesic
+    ? `${format(zacatek, 'd.', { locale })} – ${format(konec, 'd. MMMM yyyy', { locale })}`
+    : `${format(zacatek, 'd. MMM', { locale })} – ${format(konec, 'd. MMM yyyy', { locale })}`;
+}

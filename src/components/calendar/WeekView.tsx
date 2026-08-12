@@ -5,6 +5,7 @@ import { EventCard } from './EventCard';
 import { getWeekDays, isToday, format, toDateKey } from '@/lib/utils/date';
 import type { CalendarEvent } from '@/types/database';
 import type { DayTask } from './DayDetailModal';
+import { taskChipStyle } from './taskChip';
 import { cs } from 'date-fns/locale';
 
 interface WeekViewProps {
@@ -84,7 +85,8 @@ export function WeekView({
                   key={task.id}
                   onClick={() => onTaskClick(task)}
                   className="w-full text-left px-2 py-1.5 rounded-lg text-xs font-medium truncate hover:opacity-80 transition-opacity"
-                  style={{ backgroundColor: 'rgba(239, 68, 68, 0.12)', color: '#EF4444' }}
+                  style={taskChipStyle(task.date)}
+                  title={task.title}
                 >
                   📋 {task.title}
                 </button>

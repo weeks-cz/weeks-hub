@@ -13,7 +13,7 @@ import { DayDetailModal, type DayTask } from './DayDetailModal';
 import { useEvents } from '@/hooks/useEvents';
 import { useTasks } from '@/hooks/useTasks';
 import { useCamps } from '@/hooks/useCamps';
-import { addMonths, subMonths, formatMonthYear, toDateKey } from '@/lib/utils/date';
+import { addMonths, subMonths, addWeeks, subWeeks, formatMonthYear, formatWeekRange, toDateKey } from '@/lib/utils/date';
 import { CalendarSkeleton } from '@/components/ui/Skeleton';
 import { CAMP_STATUS_CONFIG, type CalendarEvent } from '@/types/database';
 
@@ -78,8 +78,12 @@ export function CalendarView() {
     .filter((t) => t.due_date && t.status !== 'done')
     .map((t) => ({ date: t.due_date!, title: t.title, id: t.id })), [tasks]);
 
-  const handlePrev = () => setCurrentDate((d) => subMonths(d, 1));
-  const handleNext = () => setCurrentDate((d) => addMonths(d, 1));
+  // Šipky se dřív hýbaly po měsících i v týdenním pohledu, takže z týdne
+  // 10.–16. 8. skočily rovnou na 6.–12. 7. a čtyři týdny se přeskočily.
+  const handlePrev = () =>
+    setCurrentDate((d) => (viewMode === 'week' ? subWeeks(d, 1) : subMonths(d, 1)));
+  const handleNext = () =>
+    setCurrentDate((d) => (viewMode === 'week' ? addWeeks(d, 1) : addMonths(d, 1)));
   const handleToday = () => setCurrentDate(new Date());
 
   // Klik na den otevře jeho detail. Dřív rovnou zakládal událost, takže se
@@ -121,7 +125,7 @@ export function CalendarView() {
             <ChevronLeft className="w-4 h-4" />
           </Button>
           <h2 className="text-lg font-semibold text-[var(--text-primary)] font-[family-name:var(--font-heading)] min-w-[140px] sm:min-w-[200px] text-center capitalize">
-            {formatMonthYear(currentDate)}
+            {viewMode === 'week' ? formatWeekRange(currentDate) : formatMonthYear(currentDate)}
           </h2>
           <Button variant="ghost" size="sm" onClick={handleNext}>
             <ChevronRight className="w-4 h-4" />

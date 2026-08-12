@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input, Textarea } from '@/components/ui/Input';
@@ -38,6 +38,25 @@ export function CreateEventModal({ isOpen, onClose, onSubmit, defaultDate }: Cre
   const [endTime, setEndTime] = useState('10:00');
   const [allDay, setAllDay] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  /**
+   * Modal zůstává trvale namountovaný a jen se přepíná `isOpen`, takže
+   * `useState(defaultDate)` se vyhodnotí jedinkrát při načtení stránky, kdy je
+   * ještě prázdný — datum vybraného dne se proto nikdy nepředvyplnilo.
+   * Reset při otevření to řeší a zároveň zahodí rozepsaný text z minulého
+   * pokusu, který se dosud držel až do úspěšného odeslání.
+   */
+  useEffect(() => {
+    if (!isOpen) return;
+    setTitle('');
+    setDescription('');
+    setEventType('meeting');
+    setStartDate(defaultDate || '');
+    setStartTime('09:00');
+    setEndDate('');
+    setEndTime('10:00');
+    setAllDay(false);
+  }, [isOpen, defaultDate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

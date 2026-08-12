@@ -5,6 +5,7 @@ import { EventCard } from './EventCard';
 import { getDaysInMonthGrid, WEEKDAY_NAMES, isSameMonth, isToday, toDateKey } from '@/lib/utils/date';
 import type { CalendarEvent } from '@/types/database';
 import type { DayTask } from './DayDetailModal';
+import { taskChipStyle, dalsiLabel } from './taskChip';
 
 interface MonthViewProps {
   currentDate: Date;
@@ -93,14 +94,15 @@ export function MonthView({ currentDate, events, taskDueDates, onEventClick, onD
                     // úkolu by se otevřel detail dne.
                     onClick={(e) => { e.stopPropagation(); onTaskClick(task); }}
                     className="w-full text-left px-1.5 py-0.5 rounded text-xs font-medium truncate hover:opacity-80 transition-opacity"
-                    style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)', color: '#EF4444' }}
+                    style={taskChipStyle(task.date)}
+                    title={task.title}
                   >
                     📋 {task.title}
                   </button>
                 ))}
                 {skryto > 0 && (
                   <span className="text-xs text-[var(--text-muted)] px-1">
-                    +{skryto} dalších
+                    {dalsiLabel(skryto)}
                   </span>
                 )}
               </div>
