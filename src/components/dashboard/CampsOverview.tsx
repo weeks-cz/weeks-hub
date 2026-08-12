@@ -1,8 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Tent, Users } from 'lucide-react';
-import { EmptyState } from '@/components/ui/EmptyState';
+import { Users } from 'lucide-react';
 import { CAMP_STATUS_CONFIG, type Camp } from '@/types/database';
 import { formatDateShort } from '@/lib/utils/date';
 
@@ -29,11 +28,11 @@ export function CampsOverview({ camps }: CampsOverviewProps) {
       </div>
 
       {activeCamps.length === 0 ? (
-        <EmptyState
-          icon={<Tent className="w-5 h-5" />}
-          title="Žádné nadcházející tábory"
-          description="Všechny turnusy jsou uzavřené nebo už proběhly"
-        />
+        /* Dřív tu byla plnohodnotná prázdná krabice vysoká 250 px, která jen
+           oznamovala, že nic není — a to samé říkal i panel Sezóna vedle. */
+        <p className="text-sm text-[var(--text-muted)]">
+          Žádný nadcházející turnus.
+        </p>
       ) : (
         <div className="space-y-2">
           {activeCamps.map((camp) => {

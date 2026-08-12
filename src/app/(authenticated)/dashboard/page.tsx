@@ -63,28 +63,27 @@ export default function DashboardPage() {
       {/*
         Jeden strom pro mobil i desktop. Dřív tu byly dvě větve (lg:hidden
         a hidden lg:block), takže se každá komponenta mountovala dvakrát.
-        Pořadí na mobilu řídí `order-*`, na desktopu mřížka.
+
+        Vlevo věci, se kterými se něco dělá, vpravo stav světa. Na mobilu se
+        sloupce poskládají pod sebe v tomhle pořadí.
       */}
       <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-4 items-start">
-        <div className="order-1 lg:row-span-2">
+        <div className="space-y-4">
           {tasksLoading || eventsLoading ? (
             <TaskListSkeleton />
           ) : (
             <FocusStream tasks={tasks} events={nadchazejiciUdalosti} currentUserId={user?.id} />
           )}
-        </div>
-
-        <div className="order-2 space-y-4">
-          <SeasonPanel registrations={registrations} byTerm={byTerm} error={regError} />
-          {campsLoading ? <TaskListSkeleton /> : <CampsOverview camps={camps} />}
-        </div>
-
-        <div className="order-3 space-y-4">
           {submissionsLoading ? (
             <TaskListSkeleton />
           ) : (
             <SubmissionsOverview submissions={submissions} newCount={newCount} />
           )}
+        </div>
+
+        <div className="space-y-4">
+          <SeasonPanel registrations={registrations} byTerm={byTerm} error={regError} />
+          {campsLoading ? <TaskListSkeleton /> : <CampsOverview camps={camps} />}
           {tasksLoading || usersLoading ? (
             <TaskListSkeleton />
           ) : (
