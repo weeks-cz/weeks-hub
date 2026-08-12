@@ -127,8 +127,9 @@ export function CalendarView() {
 
   return (
     <div>
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+      {/* Toolbar — drží se nahoře, aby při rolování k poslednímu týdnu
+          nezmizely šipky, přepínač pohledu a tlačítko nové události. */}
+      <div className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 mb-4 py-2 bg-[var(--bg-primary)]">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" onClick={handlePrev}>
             <ChevronLeft className="w-4 h-4" />
@@ -139,7 +140,9 @@ export function CalendarView() {
           <Button variant="ghost" size="sm" onClick={handleNext}>
             <ChevronRight className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="sm" onClick={handleToday} className="hidden sm:inline-flex">
+          {/* Na mobilu bylo "Dnes" schované, takže se ze vzdáleného měsíce
+              nedalo vrátit jinak než odklikáním šipek. */}
+          <Button variant="ghost" size="sm" onClick={handleToday}>
             Dnes
           </Button>
         </div>

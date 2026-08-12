@@ -187,7 +187,10 @@ export function EventDetailModal({ event, isOpen, onClose, onUpdate, onDelete }:
                 {event.all_day
                   ? formatDate(event.start_date)
                   : formatDateTime(event.start_date)}
-                {event.end_date && (
+                {/* U celodenní akce, která začíná i končí týž den, nemá smysl
+                    psát "3. května 2026 → 3. května 2026". */}
+                {event.end_date
+                  && !(event.all_day && event.end_date.slice(0, 10) === event.start_date.slice(0, 10)) && (
                   <>
                     {' → '}
                     {event.all_day

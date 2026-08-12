@@ -64,7 +64,10 @@ export function MonthView({ currentDate, events, taskDueDates, onEventClick, onD
               onClick={() => onDayClick(day)}
               className={cn(
                 'min-h-[80px] sm:min-h-[100px] p-1 sm:p-1.5 border-r border-b border-[var(--border-default)] cursor-pointer hover:bg-[var(--bg-surface)] transition-colors',
-                !isCurrentMonth && 'opacity-40'
+                // Dřív se ztlumila celá buňka včetně štítků, takže úkoly
+                // v přesahujících dnech byly skoro nečitelné. Ztlumí se
+                // jen číslo dne, obsah zůstává čitelný.
+                !isCurrentMonth && 'bg-[var(--bg-surface)]/30'
               )}
             >
               <span
@@ -72,7 +75,9 @@ export function MonthView({ currentDate, events, taskDueDates, onEventClick, onD
                   'inline-flex items-center justify-center w-7 h-7 text-sm rounded-full mb-1',
                   isCurrentDay
                     ? 'bg-[var(--color-primary)] text-white font-semibold'
-                    : 'text-[var(--text-secondary)]'
+                    : isCurrentMonth
+                      ? 'text-[var(--text-secondary)]'
+                      : 'text-[var(--text-muted)] opacity-60'
                 )}
               >
                 {day.getDate()}
