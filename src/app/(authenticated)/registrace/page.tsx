@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Users, RefreshCw } from 'lucide-react';
+import { Users, RefreshCw, Search, X } from 'lucide-react';
 import { useRegistrations } from '@/hooks/useRegistrations';
 import { useAuth } from '@/contexts/AuthContext';
 import { isAdmin } from '@/lib/utils/roles';
@@ -11,6 +11,8 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { TaskListSkeleton } from '@/components/ui/Skeleton';
 import { REGISTRATION_STATUS_CONFIG, type Registration, type RegistrationStatus } from '@/types/database';
 import { cn } from '@/lib/utils/cn';
+import { obsahuje } from '@/lib/utils/text';
+import { vyzadujePozornost } from '@/lib/utils/registrace';
 
 const STATUS_FILTERS: { value: 'all' | RegistrationStatus; label: string }[] = [
   { value: 'all', label: 'Vše' },
@@ -21,6 +23,8 @@ export default function RegistracePage() {
   const { user } = useAuth();
   const { byTerm, loading, error, refetch } = useRegistrations();
   const [statusFilter, setStatusFilter] = useState<'all' | RegistrationStatus>('all');
+  const [jenPozornost, setJenPozornost] = useState(false);
+  const [hledani, setHledani] = useState('');
   const [selected, setSelected] = useState<Registration | null>(null);
 
   if (!isAdmin(user?.role)) {
@@ -33,18 +37,72 @@ export default function RegistracePage() {
     );
   }
 
+  const dotaz = hledani.trim();
+
+  // Hledá se přes dítě i rodiče — do soupisky se člověk často dostává přes
+  // e-mail z komunikace, ne přes jméno dítěte.
+  const sedi = (r: Registration) =>
+    !dotaz ||
+    obsahuje(r.child_name, dotaz) ||
+    obsahuje(r.parent_name, dotaz) ||
+    obsahuje(r.parent_email, dotaz) ||
+    obsahuje(r.parent_phone, dotaz);
+
   const groups = byTerm
-    .map((g) => ({
-      ...g,
-      registrations: statusFilter === 'all' ? g.registrations : g.registrations.filter((r) => r.status === statusFilter),
-    }))
+    .map((g) => {
+      const registrations = g.registrations
+        .filter((r) => statusFilter === 'all' || r.status === statusFilter)
+        .filter((r) => !jenPozornost || vyzadujePozornost(r))
+        .filter(sedi);
+      return { ...g, registrations };
+    })
     .filter((g) => g.registrations.length > 0);
+
+  const vsechny = byTerm.flatMap((g) => g.registrations);
+  const pocetPozornost = vsechny.filter((r) => vyzadujePozornost(r)).length;
+  const pocetStavu = (v: 'all' | RegistrationStatus) =>
+    v === 'all' ? vsechny.length : vsechny.filter((r) => r.status === v).length;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold text-[var(--text-primary)]">Registrace</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative w-full sm:w-56">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] pointer-events-none" />
+            <input
+              type="search"
+              value={hledani}
+              onChange={(e) => setHledani(e.target.value)}
+              placeholder="Dítě, rodič, e-mail…"
+              aria-label="Hledat registraci"
+              className="w-full pl-8 pr-8 py-1.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-default)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--color-primary)] outline-none transition-colors"
+            />
+            {hledani && (
+              <button
+                onClick={() => setHledani('')}
+                aria-label="Zrušit hledání"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {pocetPozornost > 0 && (
+            <button
+              onClick={() => setJenPozornost((v) => !v)}
+              className={cn(
+                'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
+                jenPozornost
+                  ? 'bg-[#FBBF24]/15 text-[#FBBF24]'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)]'
+              )}
+            >
+              Vyžaduje pozornost <span className="tabular-nums">{pocetPozornost}</span>
+            </button>
+          )}
+
           {STATUS_FILTERS.map((f) => (
             <button
               key={f.value}
@@ -56,7 +114,7 @@ export default function RegistracePage() {
                   : 'text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)]'
               )}
             >
-              {f.label}
+              {f.label} <span className="text-xs opacity-60 tabular-nums">{pocetStavu(f.value)}</span>
             </button>
           ))}
           <button
@@ -83,7 +141,19 @@ export default function RegistracePage() {
           }
         />
       ) : groups.length === 0 ? (
-        <EmptyState icon={<Users className="w-6 h-6" />} title="Žádné registrace" description="Zatím tu nic není." />
+        <EmptyState
+          icon={<Users className="w-6 h-6" />}
+          title={dotaz || jenPozornost || statusFilter !== 'all' ? 'Nic nesedí' : 'Žádné registrace'}
+          description={
+            dotaz
+              ? `Na „${dotaz}" nic nesedí.`
+              : jenPozornost
+                ? 'Nic nečeká na zásah.'
+                : statusFilter !== 'all'
+                  ? 'V tomhle stavu nic není.'
+                  : 'Zatím tu nic není.'
+          }
+        />
       ) : (
         <div className="space-y-4">
           {groups.map((g) => (
