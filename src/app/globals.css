@@ -239,3 +239,12 @@ h1, h2, h3, h4, h5, h6 {
     scroll-behavior: auto !important;
   }
 }
+
+/* ===== Hledání =====
+   type="search" si prohlížeč kreslí vlastní křížek na smazání. Máme svůj,
+   umístěný a nabarvený podle zbytku UI, takže by tam byly dva vedle sebe. */
+input[type='search']::-webkit-search-cancel-button,
+input[type='search']::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
