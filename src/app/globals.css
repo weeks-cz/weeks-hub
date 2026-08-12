@@ -222,3 +222,20 @@ h1, h2, h3, h4, h5, h6 {
   background: var(--color-trust);
   animation-delay: -8s;
 }
+
+/* ===== Omezený pohyb =====
+   Hub animuje na několika místech (board, kalendář, dekorativní bloby).
+   Kdo si v systému vypne animace, má na to důvod — od nevolnosti při pohybu
+   po úsporu baterie — a dosud to aplikace ignorovala.
+   Animace se nevypínají úplně, jen zkrátí na nepostřehnutelné minimum:
+   `animation: none` umí rozbít knihovny, které čekají na animationend. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
