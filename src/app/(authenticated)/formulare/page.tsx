@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { FileText, Inbox, Search, X } from 'lucide-react';
+import { FileText, Inbox } from 'lucide-react';
 import { useFormSubmissions } from '@/hooks/useFormSubmissions';
 import { SubmissionCard } from '@/components/submissions/SubmissionCard';
 import { SubmissionDetailModal } from '@/components/submissions/SubmissionDetailModal';
@@ -11,6 +11,7 @@ import { TaskListSkeleton } from '@/components/ui/Skeleton';
 import type { FormSubmission, FormSubmissionStatus, FormSubmissionType } from '@/types/database';
 import { FORM_STATUS_CONFIG, FORM_TYPE_CONFIG, PROGRAM_CONFIG } from '@/types/database';
 import { obsahuje } from '@/lib/utils/text';
+import { SearchInput } from '@/components/ui/SearchInput';
 
 type StatusFilter = 'all' | FormSubmissionStatus;
 type TypeFilter = 'all' | FormSubmissionType;
@@ -93,26 +94,13 @@ export default function FormularePage() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative w-full sm:w-60">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] pointer-events-none" />
-          <input
-            type="search"
-            value={hledani}
-            onChange={(e) => setHledani(e.target.value)}
-            placeholder="E-mail, jméno, text zprávy…"
-            aria-label="Hledat formulář"
-            className="w-full pl-8 pr-8 py-1.5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--color-primary)] outline-none transition-colors"
-          />
-          {hledani && (
-            <button
-              onClick={() => setHledani('')}
-              aria-label="Zrušit hledání"
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
+        <SearchInput
+          value={hledani}
+          onChange={setHledani}
+          placeholder="E-mail, jméno, text zprávy…"
+          label="Hledat formulář"
+          className="w-full sm:w-60"
+        />
 
         {/* Status filter */}
         <div className="flex items-center gap-1 bg-[var(--bg-surface)] rounded-xl border border-[var(--border-default)] p-1">

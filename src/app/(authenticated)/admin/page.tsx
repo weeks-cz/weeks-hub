@@ -9,6 +9,7 @@ import { useFormSubmissions } from '@/hooks/useFormSubmissions';
 import { isAdmin } from '@/lib/utils/roles';
 import { LoadingPage } from '@/components/ui/LoadingSpinner';
 import { ROLE_CONFIG } from '@/types/database';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 export default function AdminPage() {
   const { user, loading: authLoading } = useAuth();
@@ -61,17 +62,7 @@ export default function AdminPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-[var(--color-primary)]/15 flex items-center justify-center">
-          <Shield className="w-5 h-5 text-[var(--color-primary)]" />
-        </div>
-        <div>
-          <h2 className="text-2xl font-bold text-[var(--text-primary)] font-[family-name:var(--font-heading)]">
-            Administrace
-          </h2>
-          <p className="text-sm text-[var(--text-muted)]">Správa uživatelů a přehled systému</p>
-        </div>
-      </div>
+      <PageHeader icon={Shield} title="Administrace" subtitle="Správa uživatelů a přehled systému" />
 
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

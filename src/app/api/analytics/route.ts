@@ -174,7 +174,10 @@ export async function GET(request: Request) {
       totalUsers: getMetric(currentRow, 0),
       totalPageviews: getMetric(currentRow, 1),
       avgSessionDuration: Math.round(getMetric(currentRow, 2)),
-      bounceRate: Math.round(getMetric(currentRow, 3) * 100) / 100,
+      // GA4 vrací bounceRate jako poměr 0–1. Původní výpočet jen zaokrouhloval
+      // na dvě desetinná místa, takže 0,65 (= 65 %) se vykreslilo jako "0.65 %"
+      // a míra opuštění vypadala stokrát lepší, než ve skutečnosti byla.
+      bounceRate: Math.round(getMetric(currentRow, 3) * 100),
       changes: {
         users: calcChange(getMetric(currentRow, 0), getMetric(previousRow, 0)),
         pageviews: calcChange(getMetric(currentRow, 1), getMetric(previousRow, 1)),

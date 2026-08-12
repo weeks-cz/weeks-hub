@@ -13,9 +13,10 @@ import { CampDetailModal } from '@/components/camps/CampDetailModal';
 import { useCamps } from '@/hooks/useCamps';
 import { TaskListSkeleton } from '@/components/ui/Skeleton';
 import { CAMP_STATUS_CONFIG, type Camp, type CampStatus } from '@/types/database';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 const STATUS_FILTERS: { value: 'all' | CampStatus; label: string }[] = [
-  { value: 'all', label: 'Vse' },
+  { value: 'all', label: 'Vše' },
   ...Object.entries(CAMP_STATUS_CONFIG).map(([key, config]) => ({
     value: key as CampStatus,
     label: config.label,
@@ -76,27 +77,23 @@ export default function CampsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-[var(--text-primary)] font-[family-name:var(--font-heading)]">
-            Tabory
-          </h2>
-          <p className="text-sm text-[var(--text-muted)] mt-1">
-            Prehled vsech taboru a jejich obsazenosti
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="secondary" onClick={syncFromWeb} isLoading={isSyncing}>
-            <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-            Sync z webu
-          </Button>
-          <Button onClick={() => setShowCreate(true)}>
-            <Plus className="w-4 h-4" />
-            Novy tabor
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={Tent}
+        title="Tábory"
+        subtitle="Přehled všech turnusů a jejich obsazenosti"
+        actions={
+          <>
+            <Button variant="secondary" onClick={syncFromWeb} isLoading={isSyncing}>
+              <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+              Sync z webu
+            </Button>
+            <Button onClick={() => setShowCreate(true)}>
+              <Plus className="w-4 h-4" />
+              Nový tábor
+            </Button>
+          </>
+        }
+      />
 
       {/* Status filter */}
       <div className="flex gap-2 flex-wrap">
@@ -131,7 +128,7 @@ export default function CampsPage() {
           {upcomingCamps.length > 0 && (
             <div>
               <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3 font-[family-name:var(--font-heading)]">
-                Nadchazejici ({upcomingCamps.length})
+                Nadcházející ({upcomingCamps.length})
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                 <AnimatePresence mode="popLayout">
@@ -156,7 +153,7 @@ export default function CampsPage() {
           {pastCamps.length > 0 && (
             <div>
               <h3 className="text-sm font-semibold text-[var(--text-muted)] mb-3 font-[family-name:var(--font-heading)]">
-                Probehnute ({pastCamps.length})
+                Proběhlé ({pastCamps.length})
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 opacity-60">
                 {pastCamps.map((camp) => (

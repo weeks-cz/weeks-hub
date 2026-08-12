@@ -11,6 +11,7 @@ import { ShopProductModal } from '@/components/shop-products/ShopProductModal';
 import { useShopProducts } from '@/hooks/useShopProducts';
 import type { ShopProduct, ShopProductType } from '@/types/database';
 import { SHOP_PRODUCT_TYPE_CONFIG } from '@/types/database';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 type TypeFilter = 'all' | ShopProductType;
 type PublishFilter = 'all' | 'published' | 'draft';
@@ -64,24 +65,17 @@ export default function ShopProductsPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-primary)]/10">
-            <Package className="h-5 w-5 text-[var(--color-primary)]" />
-          </div>
-          <div>
-            <h2 className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[var(--text-primary)]">
-              E-shop produkty
-            </h2>
-            <p className="mt-1 text-sm text-[var(--text-muted)]">
-              Produkty, které se zobrazují na weeks.cz/eshop
-            </p>
-          </div>
-        </div>
-
-        <Button onClick={() => setShowCreate(true)}>
-          <Plus className="h-4 w-4" />
-          Nový produkt
-        </Button>
+        <PageHeader
+          icon={Package}
+          title="E-shop"
+          subtitle="Produkty, které se zobrazují na weeks.cz/eshop"
+          actions={
+            <Button onClick={() => setShowCreate(true)}>
+              <Plus className="h-4 w-4" />
+              Nový produkt
+            </Button>
+          }
+        />
       </div>
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

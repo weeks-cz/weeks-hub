@@ -15,6 +15,7 @@ import {
   Target,
   MousePointer,
   Megaphone,
+  BarChart3,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -31,6 +32,7 @@ import {
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { useMetaCampaigns, MetaCampaignsData } from '@/hooks/useMetaCampaigns';
 import { Skeleton, StatsCardsSkeleton, TaskListSkeleton } from '@/components/ui/Skeleton';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 const EVENT_LABELS: Record<string, string> = {
   registration_click: 'Klik na registraci',
@@ -398,28 +400,22 @@ export default function AnalyticsPage() {
   return (
     <div className="space-y-6 relative">
       {/* Decorative blobs */}
-      <div className="blob blob-primary w-[300px] h-[300px] -top-32 -right-32" />
-      <div className="blob blob-accent w-[200px] h-[200px] top-64 -left-24" />
-
-      {/* Header */}
-      <div className="flex items-center justify-between relative">
-        <div>
-          <h2 className="text-2xl font-bold font-[family-name:var(--font-heading)]">
-            <span className="text-gradient">Analytika</span>
-          </h2>
-          <p className="text-sm text-[var(--text-muted)] mt-1">
-            Přehled návštěvnosti weeks.cz za posledních 30 dní
-          </p>
-        </div>
-        <button
-          onClick={refetch}
-          disabled={loading}
-          className="p-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors disabled:opacity-50"
-          title="Obnovit data"
-        >
-          <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-        </button>
-      </div>
+      <PageHeader
+        icon={BarChart3}
+        title="Analytika"
+        subtitle="Přehled návštěvnosti weeks.cz za posledních 30 dní"
+        actions={
+          <button
+            onClick={refetch}
+            disabled={loading}
+            className="p-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors disabled:opacity-50"
+            title="Obnovit data"
+            aria-label="Obnovit data"
+          >
+            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+        }
+      />
 
       {/* Overview Stats */}
       {loading ? (

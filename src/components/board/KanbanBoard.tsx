@@ -12,10 +12,11 @@ import { TASK_COLUMNS, type Label, type Task, type TaskStatus, type TaskPriority
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { BoardSkeleton } from '@/components/ui/Skeleton';
-import { Plus, Filter, Search, X } from 'lucide-react';
+import { Plus, Filter } from 'lucide-react';
 import { useUsers } from '@/hooks/useUsers';
 import { buildSubtaskStatsMap } from '@/lib/utils/subtasks';
 import { obsahuje } from '@/lib/utils/text';
+import { SearchInput } from '@/components/ui/SearchInput';
 
 /** Kolik hotových úkolů se ukáže hned. Zbytek na vyžádání. */
 const LIMIT_HOTOVYCH = 8;
@@ -158,26 +159,12 @@ export function KanbanBoard() {
         <div className="flex flex-wrap items-center gap-2 mb-4 shrink-0">
           {/* Hledání je nejčastější potřeba při 270 úkolech, proto není
               schované pod Filtry. */}
-          <div className="relative flex-1 min-w-[180px] max-w-xs">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] pointer-events-none" />
-            <input
-              type="search"
-              value={hledani}
-              onChange={(e) => setHledani(e.target.value)}
-              placeholder="Hledat úkol…"
-              aria-label="Hledat úkol"
-              className="w-full pl-8 pr-8 py-1.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-default)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--color-primary)] outline-none transition-colors"
-            />
-            {hledani && (
-              <button
-                onClick={() => setHledani('')}
-                aria-label="Zrušit hledání"
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
+          <SearchInput
+            value={hledani}
+            onChange={setHledani}
+            placeholder="Hledat úkol…"
+            className="flex-1 min-w-[180px] max-w-xs"
+          />
 
           {user?.id && (
             <Button

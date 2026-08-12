@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Baby, Plus, Upload, RefreshCw, Search } from 'lucide-react';
+import { Baby, Plus, Upload, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useChildren } from '@/hooks/useChildren';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,6 +14,8 @@ import { Button } from '@/components/ui/Button';
 import { TaskListSkeleton } from '@/components/ui/Skeleton';
 import { CHILD_SOURCE_CONFIG, type Child } from '@/types/database';
 import { formatAge, normalizeName } from '@/lib/children/matching';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { SearchInput } from '@/components/ui/SearchInput';
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '—';
@@ -80,41 +82,40 @@ export default function DetiPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-[var(--text-primary)]">Děti</h1>
-          <p className="text-sm text-[var(--text-muted)]">
+      <PageHeader
+        icon={Baby}
+        title="Děti"
+        subtitle={
+          <>
             {children.length} {children.length === 1 ? 'dítě' : children.length >= 2 && children.length <= 4 ? 'děti' : 'dětí'}
             {' · '}
             {totalVisits} {totalVisits === 1 ? 'návštěva' : totalVisits >= 2 && totalVisits <= 4 ? 'návštěvy' : 'návštěv'}
-          </p>
-        </div>
+          </>
+        }
+        actions={
+          <>
+            <Button variant="secondary" size="sm" onClick={runSync} isLoading={syncing}>
+              <RefreshCw className="w-4 h-4 mr-1.5" />
+              Načíst z registrací
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => setImportOpen(true)}>
+              <Upload className="w-4 h-4 mr-1.5" />
+              Import
+            </Button>
+            <Button size="sm" onClick={() => setAddOpen(true)}>
+              <Plus className="w-4 h-4 mr-1.5" />
+              Přidat dítě
+            </Button>
+          </>
+        }
+      />
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="secondary" size="sm" onClick={runSync} isLoading={syncing}>
-            <RefreshCw className="w-4 h-4 mr-1.5" />
-            Načíst z registrací
-          </Button>
-          <Button variant="secondary" size="sm" onClick={() => setImportOpen(true)}>
-            <Upload className="w-4 h-4 mr-1.5" />
-            Import
-          </Button>
-          <Button size="sm" onClick={() => setAddOpen(true)}>
-            <Plus className="w-4 h-4 mr-1.5" />
-            Přidat dítě
-          </Button>
-        </div>
-      </div>
-
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Hledat podle jména…"
-          className="w-full pl-9 pr-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-xl text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-colors"
-        />
-      </div>
+      <SearchInput
+        value={search}
+        onChange={setSearch}
+        placeholder="Hledat podle jména…"
+        className="max-w-sm"
+      />
 
       {loading ? (
         <TaskListSkeleton />

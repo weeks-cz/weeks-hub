@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Users, RefreshCw, Search, X } from 'lucide-react';
+import { Users, RefreshCw } from 'lucide-react';
 import { useRegistrations } from '@/hooks/useRegistrations';
 import { useAuth } from '@/contexts/AuthContext';
 import { isAdmin } from '@/lib/utils/roles';
@@ -13,6 +13,7 @@ import { REGISTRATION_STATUS_CONFIG, type Registration, type RegistrationStatus 
 import { cn } from '@/lib/utils/cn';
 import { obsahuje } from '@/lib/utils/text';
 import { vyzadujePozornost } from '@/lib/utils/registrace';
+import { SearchInput } from '@/components/ui/SearchInput';
 
 const STATUS_FILTERS: { value: 'all' | RegistrationStatus; label: string }[] = [
   { value: 'all', label: 'Vše' },
@@ -68,26 +69,13 @@ export default function RegistracePage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold text-[var(--text-primary)]">Registrace</h1>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative w-full sm:w-56">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] pointer-events-none" />
-            <input
-              type="search"
-              value={hledani}
-              onChange={(e) => setHledani(e.target.value)}
-              placeholder="Dítě, rodič, e-mail…"
-              aria-label="Hledat registraci"
-              className="w-full pl-8 pr-8 py-1.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-default)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--color-primary)] outline-none transition-colors"
-            />
-            {hledani && (
-              <button
-                onClick={() => setHledani('')}
-                aria-label="Zrušit hledání"
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
+          <SearchInput
+            value={hledani}
+            onChange={setHledani}
+            placeholder="Dítě, rodič, e-mail…"
+            label="Hledat registraci"
+            className="w-full sm:w-56"
+          />
 
           {pocetPozornost > 0 && (
             <button
