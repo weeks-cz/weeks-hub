@@ -71,12 +71,20 @@ export function TeamPanel({ tasks, users, currentUserId }: TeamPanelProps) {
                   {prave ? prave.title : 'Nic rozpracovaného'}
                 </p>
               </div>
-              <div className="text-right shrink-0">
-                <span className="text-sm text-[var(--text-primary)] tabular-nums">{pocet}</span>
+              {/* Oddělovač musí být znak, ne jen mezera z marginu — jinak
+                  čtečka i kopírování textu slepí "56" a "2 po termínu"
+                  do "562 po termínu". */}
+              <div className="text-right shrink-0 text-xs">
+                <span className="text-[var(--text-primary)] tabular-nums" title={`${pocet} otevřených úkolů`}>
+                  {pocet} otevř.
+                </span>
                 {poTerminu > 0 && (
-                  <span className="text-xs tabular-nums ml-1.5" style={{ color: '#F87171' }}>
-                    {poTerminu} po termínu
-                  </span>
+                  <>
+                    <span className="text-[var(--text-muted)] mx-1">·</span>
+                    <span className="tabular-nums" style={{ color: '#F87171' }}>
+                      {poTerminu} po termínu
+                    </span>
+                  </>
                 )}
               </div>
             </div>
