@@ -2,22 +2,24 @@
 
 import { cn } from '@/lib/utils/cn';
 import { EventCard } from './EventCard';
-import { getDaysInMonthGrid, WEEKDAY_NAMES, isSameDay, isSameMonth, isToday } from '@/lib/utils/date';
+import { getDaysInMonthGrid, WEEKDAY_NAMES, isSameMonth, isToday, toDateKey } from '@/lib/utils/date';
 import type { CalendarEvent } from '@/types/database';
+import type { DayTask } from './DayDetailModal';
 
 interface MonthViewProps {
   currentDate: Date;
   events: CalendarEvent[];
-  taskDueDates: { date: string; title: string; id: string }[];
+  taskDueDates: DayTask[];
   onEventClick: (event: CalendarEvent) => void;
   onDayClick: (date: Date) => void;
+  onTaskClick: (task: DayTask) => void;
 }
 
-export function MonthView({ currentDate, events, taskDueDates, onEventClick, onDayClick }: MonthViewProps) {
+export function MonthView({ currentDate, events, taskDueDates, onEventClick, onDayClick, onTaskClick }: MonthViewProps) {
   const days = getDaysInMonthGrid(currentDate);
 
   const getEventsForDay = (day: Date) => {
-    const dayStr = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+    const dayStr = toDateKey(day);
     return events.filter((event) => {
       const startStr = event.start_date.slice(0, 10);
       const endStr = event.end_date ? event.end_date.slice(0, 10) : startStr;
@@ -25,8 +27,11 @@ export function MonthView({ currentDate, events, taskDueDates, onEventClick, onD
     });
   };
 
+  // due_date je DATE ('YYYY-MM-DD'); porovnává se jako řetězec, aby se datum
+  // nikdy neposunulo přes new Date() a časové pásmo.
   const getTaskDueDatesForDay = (day: Date) => {
-    return taskDueDates.filter((t) => isSameDay(new Date(t.date), day));
+    const dayStr = toDateKey(day);
+    return taskDueDates.filter((t) => t.date.slice(0, 10) === dayStr);
   };
 
   return (
@@ -47,6 +52,10 @@ export function MonthView({ currentDate, events, taskDueDates, onEventClick, onD
           const dayTasks = getTaskDueDatesForDay(day);
           const isCurrentMonth = isSameMonth(day, currentDate);
           const isCurrentDay = isToday(day);
+          // Vykresluje se až 3 události + 2 úkoly; původní počet "+N dalších"
+          // počítal, jako by se vešly jen tři položky celkem.
+          const skryto =
+            Math.max(0, dayEvents.length - 3) + Math.max(0, dayTasks.length - 2);
 
           return (
             <div
@@ -78,17 +87,20 @@ export function MonthView({ currentDate, events, taskDueDates, onEventClick, onD
                   />
                 ))}
                 {dayTasks.slice(0, 2).map((task) => (
-                  <div
+                  <button
                     key={task.id}
-                    className="px-1.5 py-0.5 rounded text-xs font-medium truncate"
+                    // Bez stopPropagation by klik probublal na buňku dne a místo
+                    // úkolu by se otevřel detail dne.
+                    onClick={(e) => { e.stopPropagation(); onTaskClick(task); }}
+                    className="w-full text-left px-1.5 py-0.5 rounded text-xs font-medium truncate hover:opacity-80 transition-opacity"
                     style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)', color: '#EF4444' }}
                   >
                     📋 {task.title}
-                  </div>
+                  </button>
                 ))}
-                {(dayEvents.length + dayTasks.length) > 3 && (
+                {skryto > 0 && (
                   <span className="text-xs text-[var(--text-muted)] px-1">
-                    +{dayEvents.length + dayTasks.length - 3} dalších
+                    +{skryto} dalších
                   </span>
                 )}
               </div>

@@ -36,7 +36,34 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
 
   if (error) return new NextResponse('Calendar unavailable', { status: 502 });
 
-  const body = buildCalendar((data ?? []) as IcsEvent[], 'Weeks — týmový kalendář');
+  // Termíny úkolů přihlášeného člověka. Události jsou týmové, úkoly schválně
+  // ne — do vlastního kalendáře patří jen to, co má na starosti on.
+  // ?ukoly=0 je vypne, kdyby si někdo chtěl nechat čistě týmový kalendář.
+  const chceUkoly = new URL(_req.url).searchParams.get('ukoly') !== '0';
+
+  let taskEvents: IcsEvent[] = [];
+  if (chceUkoly) {
+    const { data: tasks } = await service
+      .from('tasks')
+      .select('id, title, description, due_date, updated_at')
+      .eq('assignee_id', owner.id)
+      .neq('status', 'done')
+      .not('due_date', 'is', null)
+      .order('due_date', { ascending: true });
+
+    taskEvents = (tasks ?? []).map((t) => ({
+      id: `task-${t.id}`,
+      title: `📋 ${t.title}`,
+      description: t.description,
+      // due_date je DATE, takže úkol je celodenní záležitost.
+      start_date: t.due_date as string,
+      end_date: null,
+      all_day: true,
+      updated_at: t.updated_at,
+    }));
+  }
+
+  const body = buildCalendar([...((data ?? []) as IcsEvent[]), ...taskEvents], 'Weeks — týmový kalendář');
 
   return new NextResponse(body, {
     headers: {

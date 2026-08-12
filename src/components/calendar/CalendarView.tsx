@@ -9,10 +9,11 @@ import { WeekView } from './WeekView';
 import { CreateEventModal } from './CreateEventModal';
 import { EventDetailModal } from './EventDetailModal';
 import { SubscribeModal } from './SubscribeModal';
+import { DayDetailModal, type DayTask } from './DayDetailModal';
 import { useEvents } from '@/hooks/useEvents';
 import { useTasks } from '@/hooks/useTasks';
 import { useCamps } from '@/hooks/useCamps';
-import { addMonths, subMonths, formatMonthYear } from '@/lib/utils/date';
+import { addMonths, subMonths, formatMonthYear, toDateKey } from '@/lib/utils/date';
 import { CalendarSkeleton } from '@/components/ui/Skeleton';
 import { CAMP_STATUS_CONFIG, type CalendarEvent } from '@/types/database';
 
@@ -25,6 +26,7 @@ export function CalendarView() {
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [subscribeOpen, setSubscribeOpen] = useState(false);
+  const [dayDetail, setDayDetail] = useState<Date | null>(null);
   const router = useRouter();
 
   const { events, loading, createEvent, updateEvent, deleteEvent } = useEvents();
@@ -72,19 +74,41 @@ export function CalendarView() {
   }, [router]);
 
   // Get task due dates for calendar
-  const taskDueDates = tasks
+  const taskDueDates = useMemo<DayTask[]>(() => tasks
     .filter((t) => t.due_date && t.status !== 'done')
-    .map((t) => ({ date: t.due_date!, title: t.title, id: t.id }));
+    .map((t) => ({ date: t.due_date!, title: t.title, id: t.id })), [tasks]);
 
   const handlePrev = () => setCurrentDate((d) => subMonths(d, 1));
   const handleNext = () => setCurrentDate((d) => addMonths(d, 1));
   const handleToday = () => setCurrentDate(new Date());
 
-  const handleDayClick = (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0];
-    setSelectedDate(dateStr);
+  // Klik na den otevře jeho detail. Dřív rovnou zakládal událost, takže se
+  // nedalo podívat, co ten den vlastně je.
+  const handleDayClick = (date: Date) => setDayDetail(date);
+
+  const handleTaskClick = useCallback((task: DayTask) => {
+    router.push(`/board?task=${task.id}`);
+  }, [router]);
+
+  const handleCreateFromDay = () => {
+    if (!dayDetail) return;
+    setSelectedDate(toDateKey(dayDetail));
+    setDayDetail(null);
     setCreateModalOpen(true);
   };
+
+  // Obsah otevřeného dne — stejná pravidla filtrování jako v mřížce.
+  const dayDetailKey = dayDetail ? toDateKey(dayDetail) : null;
+  const dayDetailEvents = dayDetailKey
+    ? allEvents.filter((e) => {
+        const start = e.start_date.slice(0, 10);
+        const end = e.end_date ? e.end_date.slice(0, 10) : start;
+        return dayDetailKey >= start && dayDetailKey <= end;
+      })
+    : [];
+  const dayDetailTasks = dayDetailKey
+    ? taskDueDates.filter((t) => t.date.slice(0, 10) === dayDetailKey)
+    : [];
 
   if (loading) return <CalendarSkeleton />;
 
@@ -152,12 +176,16 @@ export function CalendarView() {
           taskDueDates={taskDueDates}
           onEventClick={handleEventClick}
           onDayClick={handleDayClick}
+          onTaskClick={handleTaskClick}
         />
       ) : (
         <WeekView
           currentDate={currentDate}
           events={allEvents}
+          taskDueDates={taskDueDates}
           onEventClick={handleEventClick}
+          onDayClick={handleDayClick}
+          onTaskClick={handleTaskClick}
         />
       )}
 
@@ -175,6 +203,16 @@ export function CalendarView() {
         onClose={() => setSelectedEvent(null)}
         onUpdate={handleUpdateEvent}
         onDelete={deleteEvent}
+      />
+
+      <DayDetailModal
+        date={dayDetail}
+        events={dayDetailEvents}
+        tasks={dayDetailTasks}
+        onClose={() => setDayDetail(null)}
+        onEventClick={(event) => { setDayDetail(null); handleEventClick(event); }}
+        onTaskClick={handleTaskClick}
+        onCreateEvent={handleCreateFromDay}
       />
 
       <SubscribeModal isOpen={subscribeOpen} onClose={() => setSubscribeOpen(false)} />

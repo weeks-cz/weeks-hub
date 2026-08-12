@@ -63,4 +63,15 @@ export function getUpcomingDays(days: number): { start: Date; end: Date } {
   return { start: now, end: addDays(now, days) };
 }
 
+/**
+ * YYYY-MM-DD podle lokálního času.
+ *
+ * Schválně ne toISOString(): mřížka dnů se staví z lokálních půlnocí a při
+ * kladném posunu vůči UTC (v Praze vždy) by se ISO řetězec překlopil na
+ * předchozí den — kliknutí na 15. by založilo událost na 14.
+ */
+export function toDateKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
 export { addMonths, subMonths, isSameDay, isSameMonth, isToday, parseISO, format, isWithinInterval, startOfMonth, endOfMonth, addDays };
