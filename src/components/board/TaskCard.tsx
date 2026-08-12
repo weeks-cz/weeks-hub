@@ -6,6 +6,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
 import { PRIORITY_CONFIG, type Task } from '@/types/database';
 import { formatDateShort } from '@/lib/utils/date';
+import { NALEHAVOST_BARVA, urciNalehavost } from '@/lib/utils/urgency';
 import { cn } from '@/lib/utils/cn';
 import type { SubtaskStats } from '@/lib/utils/subtasks';
 
@@ -25,6 +26,14 @@ export function TaskCard({ task, index, subtaskStats, onClick, onQuickComplete }
   const attachmentCount = task.attachments?.length ?? 0;
   const isDone = task.status === 'done';
 
+  // Termín se barví stejnou škálou jako v kalendáři a na dashboardu.
+  // Dřív byl vždycky šedý, takže z karty nešlo poznat, že je task po termínu.
+  const nalehavost = task.due_date && !isDone ? urciNalehavost(task.due_date) : null;
+  const barvaTerminu =
+    nalehavost === 'po-terminu' || nalehavost === 'dnes'
+      ? NALEHAVOST_BARVA[nalehavost]
+      : 'var(--text-muted)';
+
   return (
     <Draggable draggableId={task.id} index={index}>
       {(provided, snapshot) => (
@@ -33,6 +42,16 @@ export function TaskCard({ task, index, subtaskStats, onClick, onQuickComplete }
           {...provided.draggableProps}
           {...provided.dragHandleProps}
           onClick={onClick}
+          // Knihovna pro přetahování si bere mezerník a šipky, Enter zůstává
+          // volný — díky němu jde karta otevřít i z klávesnice.
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              onClick();
+            }
+          }}
+          role="button"
+          aria-label={task.title}
           className={cn(
             'bg-[var(--bg-surface)] border rounded-xl p-3 cursor-pointer hover:border-[var(--color-primary)]/30 hover:-translate-y-[1px] hover:shadow-md hover:shadow-black/10 transition-all duration-200 group relative border-l-[3px]',
             snapshot.isDragging && 'shadow-lg shadow-[var(--color-primary)]/10 border-[var(--color-primary)]/50 rotate-2',
@@ -99,7 +118,11 @@ export function TaskCard({ task, index, subtaskStats, onClick, onQuickComplete }
 
             {/* Due date */}
             {task.due_date && (
-              <span className="flex items-center gap-1 text-xs text-[var(--text-muted)]">
+              <span
+                className="flex items-center gap-1 text-xs"
+                style={{ color: barvaTerminu }}
+                title={nalehavost === 'po-terminu' ? 'Po termínu' : undefined}
+              >
                 <Calendar className="w-3 h-3" />
                 {formatDateShort(task.due_date)}
               </span>

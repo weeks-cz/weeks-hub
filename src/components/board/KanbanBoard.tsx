@@ -7,22 +7,33 @@ import { BoardColumn } from './BoardColumn';
 import { CreateTaskModal } from './CreateTaskModal';
 import { TaskDetailPanel } from './TaskDetailPanel';
 import { useTasks } from '@/hooks/useTasks';
-import { TASK_COLUMNS, type Task, type TaskStatus, type TaskPriority } from '@/types/database';
+import { useAuth } from '@/contexts/AuthContext';
+import { TASK_COLUMNS, type Label, type Task, type TaskStatus, type TaskPriority } from '@/types/database';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { BoardSkeleton } from '@/components/ui/Skeleton';
-import { Plus, Filter } from 'lucide-react';
+import { Plus, Filter, Search, X } from 'lucide-react';
 import { useUsers } from '@/hooks/useUsers';
 import { buildSubtaskStatsMap } from '@/lib/utils/subtasks';
+import { obsahuje } from '@/lib/utils/text';
+
+/** Kolik hotových úkolů se ukáže hned. Zbytek na vyžádání. */
+const LIMIT_HOTOVYCH = 8;
 
 export function KanbanBoard() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { user } = useAuth();
 
+  // Přiřazený a priorita jdou na server (indexované sloupce), štítek a hledání
+  // se řeší v klientovi — jinak by se refetchovalo při každém napsaném znaku
+  // a seznam štítků by se sám osekal na ten právě vybraný.
   const [filters, setFilters] = useState<{
     assigneeId?: string | null;
     priority?: TaskPriority | null;
   }>({});
+  const [labelId, setLabelId] = useState<string | null>(null);
+  const [hledani, setHledani] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createStatus, setCreateStatus] = useState<TaskStatus>('todo');
@@ -56,6 +67,42 @@ export function KanbanBoard() {
 
   // Cards can't see their own child tasks, so counts are derived from the full list here.
   const subtaskStats = useMemo(() => buildSubtaskStatsMap(tasks), [tasks]);
+
+  // Nabízejí se jen štítky, které se v aktuálním výběru opravdu vyskytují —
+  // filtr, po kterém nic nezbude, je jen past.
+  const stitky = useMemo(() => {
+    const mapa = new Map<string, Label>();
+    for (const t of tasks) {
+      for (const l of t.labels ?? []) mapa.set(l.id, l);
+    }
+    return [...mapa.values()].sort((a, b) => a.name.localeCompare(b.name, 'cs'));
+  }, [tasks]);
+
+  const dotaz = hledani.trim();
+
+  const sloupec = (status: TaskStatus): Task[] => {
+    let seznam = getTasksByStatus(status);
+    if (labelId) seznam = seznam.filter((t) => t.labels?.some((l) => l.id === labelId));
+    if (dotaz) {
+      seznam = seznam.filter((t) => obsahuje(t.title, dotaz) || obsahuje(t.description, dotaz));
+    }
+    return seznam;
+  };
+
+  const pocetVysledku = dotaz
+    ? TASK_COLUMNS.reduce((soucet, c) => soucet + sloupec(c.id).length, 0)
+    : 0;
+
+  const aktivnichFiltru =
+    (filters.assigneeId ? 1 : 0) + (filters.priority ? 1 : 0) + (labelId ? 1 : 0);
+
+  const jenMoje = filters.assigneeId === user?.id && !!user?.id;
+
+  const resetovat = () => {
+    setFilters({});
+    setLabelId(null);
+    setHledani('');
+  };
 
   const openTask = (task: Task) => {
     setSelectedTaskId(task.id);
@@ -103,21 +150,67 @@ export function KanbanBoard() {
       {/* Board area */}
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Toolbar */}
-        <div className="flex items-center justify-between mb-4 shrink-0">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 mb-4 shrink-0">
+          {/* Hledání je nejčastější potřeba při 270 úkolech, proto není
+              schované pod Filtry. */}
+          <div className="relative flex-1 min-w-[180px] max-w-xs">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] pointer-events-none" />
+            <input
+              type="search"
+              value={hledani}
+              onChange={(e) => setHledani(e.target.value)}
+              placeholder="Hledat úkol…"
+              aria-label="Hledat úkol"
+              className="w-full pl-8 pr-8 py-1.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-default)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--color-primary)] outline-none transition-colors"
+            />
+            {hledani && (
+              <button
+                onClick={() => setHledani('')}
+                aria-label="Zrušit hledání"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {user?.id && (
             <Button
-              variant="ghost"
+              variant={jenMoje ? 'secondary' : 'ghost'}
               size="sm"
-              onClick={() => setShowFilters(!showFilters)}
+              onClick={() =>
+                setFilters((f) => ({ ...f, assigneeId: jenMoje ? null : user.id }))
+              }
             >
-              <Filter className="w-4 h-4" />
-              Filtry
+              Jen moje
+            </Button>
+          )}
+
+          <Button variant="ghost" size="sm" onClick={() => setShowFilters(!showFilters)}>
+            <Filter className="w-4 h-4" />
+            Filtry
+            {aktivnichFiltru > 0 && (
+              <span className="ml-1 px-1.5 rounded-full bg-[var(--color-primary)] text-white text-[10px] tabular-nums">
+                {aktivnichFiltru}
+              </span>
+            )}
+          </Button>
+
+          {(aktivnichFiltru > 0 || dotaz) && (
+            <button
+              onClick={resetovat}
+              className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              Zrušit vše
+            </button>
+          )}
+
+          <div className="ml-auto">
+            <Button size="sm" onClick={() => handleAddTask('todo')}>
+              <Plus className="w-4 h-4" />
+              Nový task
             </Button>
           </div>
-          <Button size="sm" onClick={() => handleAddTask('todo')}>
-            <Plus className="w-4 h-4" />
-            Nový task
-          </Button>
         </div>
 
         {/* Filters bar */}
@@ -151,14 +244,29 @@ export function KanbanBoard() {
                 }))
               }
             />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setFilters({})}
-            >
+            {stitky.length > 0 && (
+              <Select
+                label="Štítek"
+                options={[
+                  { value: '', label: 'Všechny' },
+                  ...stitky.map((l) => ({ value: l.id, label: l.name })),
+                ]}
+                value={labelId || ''}
+                onChange={(e) => setLabelId(e.target.value || null)}
+              />
+            )}
+            <Button variant="ghost" size="sm" onClick={resetovat}>
               Resetovat
             </Button>
           </div>
+        )}
+
+        {dotaz && (
+          <p className="text-xs text-[var(--text-muted)] mb-2 shrink-0">
+            {pocetVysledku === 0
+              ? `Na „${dotaz}" nic nesedí.`
+              : `${pocetVysledku} ${pocetVysledku === 1 ? 'výsledek' : pocetVysledku <= 4 ? 'výsledky' : 'výsledků'} pro „${dotaz}"`}
+          </p>
         )}
 
         {/* Board columns */}
@@ -169,11 +277,14 @@ export function KanbanBoard() {
                 key={column.id}
                 id={column.id}
                 title={column.title}
-                tasks={getTasksByStatus(column.id)}
+                tasks={sloupec(column.id)}
                 subtaskStats={subtaskStats}
                 onTaskClick={openTask}
                 onAddTask={handleAddTask}
                 onQuickComplete={handleQuickComplete}
+                // Hotových se za rok nasbírá přes padesát a nikdo je nescrolluje.
+                // Při hledání se ale musí ukázat všechny nálezy.
+                limit={column.id === 'done' && !dotaz ? LIMIT_HOTOVYCH : undefined}
               />
             ))}
           </div>

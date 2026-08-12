@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Droppable } from '@hello-pangea/dnd';
 import { Plus } from 'lucide-react';
 import { TaskCard } from './TaskCard';
@@ -16,11 +17,20 @@ interface BoardColumnProps {
   onTaskClick: (task: Task) => void;
   onAddTask: (status: TaskStatus) => void;
   onQuickComplete?: (taskId: string) => void;
+  /** Kolik karet vykreslit hned. Zbytek se schová za tlačítko. */
+  limit?: number;
 }
 
 const NO_SUBTASKS: SubtaskStats = { done: 0, total: 0, progress: 0 };
 
-export function BoardColumn({ id, title, tasks, subtaskStats, onTaskClick, onAddTask, onQuickComplete }: BoardColumnProps) {
+export function BoardColumn({ id, title, tasks, subtaskStats, onTaskClick, onAddTask, onQuickComplete, limit }: BoardColumnProps) {
+  const [rozbaleno, setRozbaleno] = useState(false);
+
+  // Hotové úkoly se hromadí donekonečna — po roce provozu jich je přes padesát
+  // a nikdo je nescrolluje. Vykreslí se jen posledních pár, zbytek na vyžádání.
+  const skryto = limit && !rozbaleno ? Math.max(0, tasks.length - limit) : 0;
+  const videt = skryto > 0 ? tasks.slice(0, limit) : tasks;
+
   return (
     <div className="flex flex-col bg-[var(--bg-primary)] rounded-2xl border border-[var(--border-default)] min-w-[280px] w-[280px] lg:min-w-[260px] lg:w-auto lg:flex-1 max-h-full">
       {/* Header */}
@@ -51,7 +61,7 @@ export function BoardColumn({ id, title, tasks, subtaskStats, onTaskClick, onAdd
               snapshot.isDraggingOver && 'bg-[var(--color-primary)]/5 rounded-b-2xl'
             )}
           >
-            {tasks.map((task, index) => (
+            {videt.map((task, index) => (
               <TaskCard
                 key={task.id}
                 task={task}
@@ -62,6 +72,15 @@ export function BoardColumn({ id, title, tasks, subtaskStats, onTaskClick, onAdd
               />
             ))}
             {provided.placeholder}
+
+            {skryto > 0 && (
+              <button
+                onClick={() => setRozbaleno(true)}
+                className="w-full py-2 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+              >
+                Zobrazit dalších {skryto}
+              </button>
+            )}
           </div>
         )}
       </Droppable>
