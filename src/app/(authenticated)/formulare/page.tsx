@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { FileText, Inbox } from 'lucide-react';
+import { FileText, Inbox, Search, X } from 'lucide-react';
 import { useFormSubmissions } from '@/hooks/useFormSubmissions';
 import { SubmissionCard } from '@/components/submissions/SubmissionCard';
 import { SubmissionDetailModal } from '@/components/submissions/SubmissionDetailModal';
@@ -10,6 +10,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { TaskListSkeleton } from '@/components/ui/Skeleton';
 import type { FormSubmission, FormSubmissionStatus, FormSubmissionType } from '@/types/database';
 import { FORM_STATUS_CONFIG, FORM_TYPE_CONFIG, PROGRAM_CONFIG } from '@/types/database';
+import { obsahuje } from '@/lib/utils/text';
 
 type StatusFilter = 'all' | FormSubmissionStatus;
 type TypeFilter = 'all' | FormSubmissionType;
@@ -19,6 +20,7 @@ export default function FormularePage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [programFilter, setProgramFilter] = useState<string>('all');
+  const [hledani, setHledani] = useState('');
   const [selectedSubmission, setSelectedSubmission] = useState<FormSubmission | null>(null);
 
   const filtered = useMemo(() => {
@@ -32,8 +34,21 @@ export default function FormularePage() {
     if (programFilter !== 'all') {
       result = result.filter((s) => s.program === programFilter);
     }
+    const dotaz = hledani.trim();
+    if (dotaz) {
+      // Hledá se i ve zprávě — u kontaktních formulářů si člověk často pamatuje
+      // spíš o co šlo než od koho to bylo.
+      result = result.filter(
+        (s) =>
+          obsahuje(s.email, dotaz) ||
+          obsahuje(s.child_name, dotaz) ||
+          obsahuje(s.sender_name, dotaz) ||
+          obsahuje(s.message, dotaz) ||
+          obsahuje(s.product_name, dotaz),
+      );
+    }
     return result;
-  }, [submissions, statusFilter, typeFilter, programFilter]);
+  }, [submissions, statusFilter, typeFilter, programFilter, hledani]);
 
   // Keep selectedSubmission in sync with latest data
   const currentSubmission = selectedSubmission
@@ -78,6 +93,27 @@ export default function FormularePage() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
+        <div className="relative w-full sm:w-60">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] pointer-events-none" />
+          <input
+            type="search"
+            value={hledani}
+            onChange={(e) => setHledani(e.target.value)}
+            placeholder="E-mail, jméno, text zprávy…"
+            aria-label="Hledat formulář"
+            className="w-full pl-8 pr-8 py-1.5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--color-primary)] outline-none transition-colors"
+          />
+          {hledani && (
+            <button
+              onClick={() => setHledani('')}
+              aria-label="Zrušit hledání"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
         {/* Status filter */}
         <div className="flex items-center gap-1 bg-[var(--bg-surface)] rounded-xl border border-[var(--border-default)] p-1">
           {statusOptions.map((opt) => (
@@ -139,9 +175,12 @@ export default function FormularePage() {
         <EmptyState
           icon={<Inbox className="w-5 h-5" />}
           title="Žádné formuláře"
-          description={statusFilter !== 'all' || typeFilter !== 'all' || programFilter !== 'all'
-            ? 'Zkuste změnit filtry'
-            : 'Zatím nepřišly žádné formuláře z webu'
+          description={
+            hledani.trim()
+              ? `Na „${hledani.trim()}" nic nesedí.`
+              : statusFilter !== 'all' || typeFilter !== 'all' || programFilter !== 'all'
+                ? 'V tomhle výběru nic není.'
+                : 'Zatím nepřišly žádné formuláře z webu'
           }
         />
       ) : (
@@ -159,6 +198,7 @@ export default function FormularePage() {
                 <SubmissionCard
                   submission={submission}
                   onClick={() => setSelectedSubmission(submission)}
+                  onUpdateStatus={updateStatus}
                 />
               </motion.div>
             ))}
