@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Kanban, Calendar, Tent, FileText, BarChart3, Shield, ClipboardList, User, X, LogOut, Package } from 'lucide-react';
+import { LayoutDashboard, Kanban, Calendar, Tent, FileText, BarChart3, Shield, ClipboardList, User, X, LogOut, Package, Baby, GraduationCap } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useAuth } from '@/contexts/AuthContext';
 import { isAdmin } from '@/lib/utils/roles';
@@ -39,7 +39,9 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
       />
 
       {/* Drawer */}
-      <div className="fixed inset-y-0 left-0 w-[280px] bg-[var(--bg-surface)] border-r border-[var(--border-default)] z-50 lg:hidden animate-slide-down">
+      {/* Sloupec s rolovatelnym seznamem. Driv byla paticka absolute bottom-0
+          a pri delsim menu prekryvala posledni polozky. */}
+      <div className="fixed inset-y-0 left-0 flex w-[280px] flex-col bg-[var(--bg-surface)] border-r border-[var(--border-default)] z-50 lg:hidden animate-slide-down">
         <div className="flex items-center justify-between px-6 h-16 border-b border-[var(--border-default)]">
           <div className="flex items-center gap-3">
             <Image src="/weeks-logo.png" alt="Weeks" width={32} height={32} className="rounded-lg" />
@@ -55,7 +57,7 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
           </button>
         </div>
 
-        <nav className="px-3 py-4 space-y-1">
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
           {NAV_ITEMS.map((item) => {
             const Icon = ICONS[item.icon];
             const isActive = pathname.startsWith(item.href);
@@ -95,11 +97,24 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
                 Registrace
               </Link>
               <Link
+                href={ROUTES.deti}
+                onClick={onClose}
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150',
+                  pathname.startsWith(ROUTES.deti)
+                    ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
+                )}
+              >
+                <Baby className="w-5 h-5" />
+                Děti
+              </Link>
+              <Link
                 href={ROUTES.admin}
                 onClick={onClose}
                 className={cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150',
-                  pathname.startsWith(ROUTES.admin)
+                  pathname.startsWith(ROUTES.admin) && !pathname.startsWith('/admin/learning')
                     ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
                 )}
@@ -107,11 +122,24 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
                 <Shield className="w-5 h-5" />
                 Admin
               </Link>
+              <Link
+                href="/admin/learning"
+                onClick={onClose}
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150',
+                  pathname.startsWith('/admin/learning')
+                    ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
+                )}
+              >
+                <GraduationCap className="w-5 h-5" />
+                Learning
+              </Link>
             </>
           )}
         </nav>
 
-        <div className="border-t border-[var(--border-default)] p-3 space-y-1 absolute bottom-0 left-0 right-0">
+        <div className="border-t border-[var(--border-default)] p-3 space-y-1">
           <Link
             href={ROUTES.profile}
             onClick={onClose}

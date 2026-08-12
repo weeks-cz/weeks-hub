@@ -75,6 +75,20 @@ export default function ProfilePage() {
             </div>
           </div>
 
+          {/* Holý profil (jen jméno a e-mail) vypadal jako rozbitá stránka.
+              Radši řekneme, že tam něco chybí, a nabídneme to doplnit. */}
+          {!user.bio && !user.position && funFields.length === 0 && (
+            <div className="mt-5 rounded-xl border border-dashed border-[var(--border-default)] p-4 text-center">
+              <p className="text-sm text-[var(--text-primary)]">Profil je zatím prázdný</p>
+              <p className="mt-0.5 text-sm text-[var(--text-muted)]">
+                Doplň pozici, pár slov o sobě a oblíbené věci — tým uvidí, kdo za úkoly stojí.
+              </p>
+              <Link href="/profile/edit" className="mt-3 inline-block">
+                <Button variant="secondary" size="sm">Doplnit profil</Button>
+              </Link>
+            </div>
+          )}
+
           {user.bio && (
             <div className="mt-5 p-4 bg-[var(--bg-primary)] rounded-xl border border-[var(--border-default)]">
               <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Bio</label>
