@@ -16,6 +16,7 @@ import {
   MousePointer,
   Megaphone,
   BarChart3,
+  Globe,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -30,8 +31,10 @@ import {
   ComposedChart,
 } from 'recharts';
 import { useAnalytics } from '@/hooks/useAnalytics';
+import { useRegistrations } from '@/hooks/useRegistrations';
+import { EkonomikaPanel } from '@/components/analytics/EkonomikaPanel';
 import { useMetaCampaigns, MetaCampaignsData } from '@/hooks/useMetaCampaigns';
-import { Skeleton, StatsCardsSkeleton, TaskListSkeleton } from '@/components/ui/Skeleton';
+import { StatsCardsSkeleton, TaskListSkeleton } from '@/components/ui/Skeleton';
 import { PageHeader } from '@/components/ui/PageHeader';
 
 const EVENT_LABELS: Record<string, string> = {
@@ -72,17 +75,27 @@ const STATUS_COLORS: Record<string, string> = {
   DELETED: 'bg-gray-500/15 text-gray-400',
 };
 
-function TrendIndicator({ value }: { value: number }) {
+/**
+ * Změna proti předchozímu období.
+ *
+ * Šipka ukazuje, kam se číslo hnulo, barva jestli je to dobře. Dřív dělalo
+ * obojí jedno: u míry opuštění nebo CPC se při poklesu kreslila šipka NAHORU,
+ * protože se do komponenty poslala už otočená hodnota. Zelená byla správně,
+ * šipka lhala.
+ */
+function TrendIndicator({ value, lepsiJeMene }: { value: number; lepsiJeMene?: boolean }) {
   if (value === 0) return null;
-  const isPositive = value > 0;
-  const Icon = isPositive ? TrendingUp : TrendingDown;
+  const roste = value > 0;
+  const Icon = roste ? TrendingUp : TrendingDown;
+  const dobre = lepsiJeMene ? !roste : roste;
   return (
     <span
       className={`inline-flex items-center gap-0.5 text-xs font-medium ${
-        isPositive ? 'text-green-400' : 'text-red-400'
+        dobre ? 'text-green-400' : 'text-red-400'
       }`}
+      title={`${roste ? 'Nárůst' : 'Pokles'} o ${Math.abs(value)} % proti předchozímu období`}
     >
-      <Icon className="w-3 h-3" />
+      <Icon className="w-3 h-3" aria-hidden />
       {Math.abs(value)}%
     </span>
   );
@@ -127,7 +140,7 @@ function MetaSection({ data, loading, error }: { data: MetaCampaignsData | null;
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
             {
-              label: 'Útrata (7 dní)',
+              label: 'Útrata',
               value: formatCZK.format(data.overview.spend),
               change: data.overview.changes.spend,
               icon: DollarSign,
@@ -178,9 +191,7 @@ function MetaSection({ data, loading, error }: { data: MetaCampaignsData | null;
                       <p className="text-2xl font-bold text-[var(--text-primary)] font-[family-name:var(--font-heading)]">
                         {stat.value}
                       </p>
-                      <TrendIndicator
-                        value={stat.invertTrend ? -stat.change : stat.change}
-                      />
+                      <TrendIndicator value={stat.change} lepsiJeMene={stat.invertTrend} />
                     </div>
                     <p className="text-xs text-[var(--text-muted)]">{stat.label}</p>
                   </div>
@@ -285,9 +296,14 @@ function MetaSection({ data, loading, error }: { data: MetaCampaignsData | null;
           transition={{ duration: 0.3, delay: 0.45 }}
           className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-5"
         >
-          <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4 font-[family-name:var(--font-heading)]">
-            Přehled kampaní
-          </h3>
+          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+            <h3 className="text-sm font-semibold text-[var(--text-primary)] font-[family-name:var(--font-heading)]">
+              Přehled kampaní
+            </h3>
+            {/* Řádky kampaní chodí z Meta API za celou dobu běhu. Bez tohohle
+                popisku se sčítaly s kartami nahoře, které jsou za 7 dní. */}
+            <span className="text-xs text-[var(--text-muted)]">Za celou dobu běhu kampaně</span>
+          </div>
           {data.campaigns.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -355,47 +371,54 @@ function MetaSection({ data, loading, error }: { data: MetaCampaignsData | null;
   );
 }
 
+/**
+ * Google Analytics se nenačetlo.
+ *
+ * Dřív se tenhle stav vracel místo celé stránky, takže výpadek GA schoval
+ * i Meta kampaně, které s ním nemají nic společného. Teď zabírá jen místo
+ * po blocích, které na GA opravdu stojí.
+ */
+function GaChyba({ error, onRefetch }: { error: string; onRefetch: () => void }) {
+  const jeNastaveni = error.includes('GA4_PROPERTY_ID') || error.includes('credentials');
+  return (
+    <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-8 text-center space-y-4">
+      <div className="w-12 h-12 rounded-xl bg-[var(--color-primary)]/10 flex items-center justify-center mx-auto">
+        <AlertCircle className="w-6 h-6 text-[var(--color-primary)]" />
+      </div>
+      <h2 className="text-lg font-semibold text-[var(--text-primary)] font-[family-name:var(--font-heading)]">
+        {jeNastaveni ? 'Nastavení Google Analytics' : 'Návštěvnost se nenačetla'}
+      </h2>
+      <p className="text-sm text-[var(--text-muted)]">
+        {jeNastaveni
+          ? 'Pro zobrazení návštěvnosti je potřeba nastavit proměnné prostředí GA4_PROPERTY_ID, GOOGLE_CLIENT_EMAIL a GOOGLE_PRIVATE_KEY.'
+          : error}
+      </p>
+      {jeNastaveni ? (
+        <div className="text-left bg-[var(--bg-primary)] rounded-xl p-4 text-xs text-[var(--text-secondary)] font-mono space-y-1 max-w-md mx-auto">
+          <p>GA4_PROPERTY_ID=123456789</p>
+          <p>GOOGLE_CLIENT_EMAIL=...@...iam.gserviceaccount.com</p>
+          <p>GOOGLE_PRIVATE_KEY=&quot;-----BEGIN PRIVATE KEY-----\\n...&quot;</p>
+        </div>
+      ) : (
+        <button
+          onClick={onRefetch}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--color-primary)] text-white text-sm font-medium hover:opacity-90 transition-opacity"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Zkusit znovu
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function AnalyticsPage() {
   const { data, loading, error, refetch } = useAnalytics();
   const { data: metaData, loading: metaLoading, error: metaError } = useMetaCampaigns();
+  // Registrace zná jen admin — ostatním se ekonomika ukáže bez tržeb.
+  const { registrations, error: registraceError } = useRegistrations();
 
-  // Setup / error state
-  if (!loading && error) {
-    const isSetupError = error.includes('GA4_PROPERTY_ID') || error.includes('credentials');
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-8 max-w-md text-center space-y-4">
-          <div className="w-12 h-12 rounded-xl bg-[var(--color-primary)]/10 flex items-center justify-center mx-auto">
-            <AlertCircle className="w-6 h-6 text-[var(--color-primary)]" />
-          </div>
-          <h2 className="text-lg font-semibold text-[var(--text-primary)] font-[family-name:var(--font-heading)]">
-            {isSetupError ? 'Nastavení Google Analytics' : 'Chyba'}
-          </h2>
-          <p className="text-sm text-[var(--text-muted)]">
-            {isSetupError
-              ? 'Pro zobrazení analytiky je potřeba nastavit proměnné prostředí GA4_PROPERTY_ID, GOOGLE_CLIENT_EMAIL a GOOGLE_PRIVATE_KEY.'
-              : error}
-          </p>
-          {isSetupError && (
-            <div className="text-left bg-[var(--bg-primary)] rounded-xl p-4 text-xs text-[var(--text-secondary)] font-mono space-y-1">
-              <p>GA4_PROPERTY_ID=123456789</p>
-              <p>GOOGLE_CLIENT_EMAIL=...@...iam.gserviceaccount.com</p>
-              <p>GOOGLE_PRIVATE_KEY=&quot;-----BEGIN PRIVATE KEY-----\n...&quot;</p>
-            </div>
-          )}
-          {!isSetupError && (
-            <button
-              onClick={refetch}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--color-primary)] text-white text-sm font-medium hover:opacity-90 transition-opacity"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Zkusit znovu
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  }
+  const gaChyba = !loading && error ? error : null;
 
   return (
     <div className="space-y-6 relative">
@@ -403,7 +426,7 @@ export default function AnalyticsPage() {
       <PageHeader
         icon={BarChart3}
         title="Analytika"
-        subtitle="Přehled návštěvnosti weeks.cz za posledních 30 dní"
+        subtitle="Návštěvnost weeks.cz a výkon reklamy"
         actions={
           <button
             onClick={refetch}
@@ -417,229 +440,141 @@ export default function AnalyticsPage() {
         }
       />
 
-      {/* Overview Stats */}
-      {loading ? (
-        <StatsCardsSkeleton />
-      ) : data ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {[
-            {
-              label: 'Uživatelé',
-              value: data.overview.totalUsers.toLocaleString('cs-CZ'),
-              change: data.overview.changes.users,
-              icon: Users,
-              color: 'var(--color-primary)',
-            },
-            {
-              label: 'Zobrazení stránek',
-              value: data.overview.totalPageviews.toLocaleString('cs-CZ'),
-              change: data.overview.changes.pageviews,
-              icon: Eye,
-              color: 'var(--color-cta)',
-            },
-            {
-              label: 'Prům. doba relace',
-              value: formatDuration(data.overview.avgSessionDuration),
-              change: data.overview.changes.duration,
-              icon: Clock,
-              color: 'var(--color-trust)',
-            },
-            {
-              label: 'Míra opuštění',
-              value: `${data.overview.bounceRate}%`,
-              change: data.overview.changes.bounceRate,
-              icon: ArrowDownRight,
-              color: 'var(--color-accent)',
-              invertTrend: true,
-            },
-          ].map((stat, index) => {
-            const Icon = stat.icon;
-            return (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.08 }}
-                className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-4 hover:border-[var(--color-primary)]/20 transition-colors duration-300"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center"
-                    style={{ backgroundColor: `${stat.color}15` }}
-                  >
-                    <Icon className="w-5 h-5" style={{ color: stat.color }} />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="text-2xl font-bold text-[var(--text-primary)] font-[family-name:var(--font-heading)]">
-                        {stat.value}
-                      </p>
-                      <TrendIndicator
-                        value={stat.invertTrend ? -stat.change : stat.change}
-                      />
-                    </div>
-                    <p className="text-xs text-[var(--text-muted)]">{stat.label}</p>
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
-      ) : null}
+      <EkonomikaPanel
+        meta={metaData}
+        registrations={registrations}
+        bezRegistraci={!!registraceError}
+      />
 
-      {/* Daily Visitors Chart */}
-      {loading ? (
-        <TaskListSkeleton />
-      ) : data ? (
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.35 }}
-          className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-5"
-        >
-          <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4 font-[family-name:var(--font-heading)]">
-            Denní návštěvnost
-          </h3>
-          <div className="h-[280px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data.dailyVisitors}>
-                <defs>
-                  <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="colorPageviews" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--color-cta)" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="var(--color-cta)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis
-                  dataKey="date"
-                  stroke="var(--text-muted)"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis
-                  stroke="var(--text-muted)"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: 'var(--bg-surface)',
-                    border: '1px solid var(--border-default)',
-                    borderRadius: '12px',
-                    fontSize: '12px',
-                  }}
-                  labelStyle={{ color: 'var(--text-primary)' }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="users"
-                  name="Uživatelé"
-                  stroke="var(--color-primary)"
-                  fill="url(#colorUsers)"
-                  strokeWidth={2}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="pageviews"
-                  name="Zobrazení"
-                  stroke="var(--color-cta)"
-                  fill="url(#colorPageviews)"
-                  strokeWidth={2}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+      {gaChyba ? (
+        <GaChyba error={gaChyba} onRefetch={refetch} />
+      ) : (
+        <>
+        {/* Stejny tvar hlavicky jako u Meta kampani nize — stranka ma dve
+            sekce a je poznat, kde jedna konci. Perioda patri sem, protoze
+            API micha 7denni karty s 30dennimi grafy. */}
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[var(--color-primary)]/10 flex items-center justify-center">
+            <Globe className="w-5 h-5 text-[var(--color-primary)]" />
           </div>
-        </motion.div>
-      ) : null}
+          <div>
+            <h2 className="text-xl font-bold font-[family-name:var(--font-heading)] text-[var(--text-primary)]">
+              Návštěvnost webu
+            </h2>
+            <p className="text-xs text-[var(--text-muted)]">
+              Google Analytics — karty za 7 dní, grafy níže za 30
+            </p>
+          </div>
+        </div>
 
-      {/* Two columns: Top Pages + Traffic Sources */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Top Pages */}
         {loading ? (
-          <TaskListSkeleton />
+          <StatsCardsSkeleton />
         ) : data ? (
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.45 }}
-            className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-5"
-          >
-            <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4 font-[family-name:var(--font-heading)]">
-              Nejnavštěvovanější stránky
-            </h3>
-            <div className="space-y-2">
-              {data.topPages.map((page, i) => {
-                const maxViews = data.topPages[0]?.views || 1;
-                const width = (page.views / maxViews) * 100;
-                return (
-                  <div key={i} className="group">
-                    <div className="flex items-center justify-between text-xs mb-1">
-                      <span className="text-[var(--text-secondary)] truncate max-w-[60%]" title={page.page}>
-                        {page.page}
-                      </span>
-                      <span className="text-[var(--text-muted)] flex gap-3">
-                        <span>{page.views.toLocaleString('cs-CZ')} zobrazení</span>
-                        <span>{page.users.toLocaleString('cs-CZ')} uživatelů</span>
-                      </span>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {[
+              {
+                label: 'Uživatelé',
+                value: data.overview.totalUsers.toLocaleString('cs-CZ'),
+                change: data.overview.changes.users,
+                icon: Users,
+                color: 'var(--color-primary)',
+              },
+              {
+                label: 'Zobrazení stránek',
+                value: data.overview.totalPageviews.toLocaleString('cs-CZ'),
+                change: data.overview.changes.pageviews,
+                icon: Eye,
+                color: 'var(--color-cta)',
+              },
+              {
+                label: 'Prům. doba relace',
+                value: formatDuration(data.overview.avgSessionDuration),
+                change: data.overview.changes.duration,
+                icon: Clock,
+                color: 'var(--color-trust)',
+              },
+              {
+                label: 'Míra opuštění',
+                value: `${data.overview.bounceRate}%`,
+                change: data.overview.changes.bounceRate,
+                icon: ArrowDownRight,
+                color: 'var(--color-accent)',
+                invertTrend: true,
+              },
+            ].map((stat, index) => {
+              const Icon = stat.icon;
+              return (
+                <motion.div
+                  key={stat.label}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.08 }}
+                  className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-4 hover:border-[var(--color-primary)]/20 transition-colors duration-300"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center"
+                      style={{ backgroundColor: `${stat.color}15` }}
+                    >
+                      <Icon className="w-5 h-5" style={{ color: stat.color }} />
                     </div>
-                    <div className="h-1.5 bg-[var(--bg-primary)] rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-[var(--color-primary)] transition-all duration-500"
-                        style={{ width: `${width}%` }}
-                      />
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-2xl font-bold text-[var(--text-primary)] font-[family-name:var(--font-heading)]">
+                          {stat.value}
+                        </p>
+                        <TrendIndicator value={stat.change} lepsiJeMene={stat.invertTrend} />
+                      </div>
+                      <p className="text-xs text-[var(--text-muted)]">{stat.label}</p>
                     </div>
                   </div>
-                );
-              })}
-              {data.topPages.length === 0 && (
-                <p className="text-sm text-[var(--text-muted)] text-center py-4">
-                  Žádná data
-                </p>
-              )}
-            </div>
-          </motion.div>
+                </motion.div>
+              );
+            })}
+          </div>
         ) : null}
 
-        {/* Traffic Sources */}
+        {/* Daily Visitors Chart */}
         {loading ? (
           <TaskListSkeleton />
         ) : data ? (
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.5 }}
+            transition={{ duration: 0.3, delay: 0.35 }}
             className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-5"
           >
-            <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4 font-[family-name:var(--font-heading)]">
-              Zdroje návštěvnosti
-            </h3>
-            <div className="h-[240px]">
+            <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+              <h3 className="text-sm font-semibold text-[var(--text-primary)] font-[family-name:var(--font-heading)]">
+                Denní návštěvnost
+              </h3>
+              <span className="text-xs text-[var(--text-muted)]">30 dní</span>
+            </div>
+            <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={data.trafficSources}
-                  layout="vertical"
-                  margin={{ left: 0, right: 20 }}
-                >
+                <AreaChart data={data.dailyVisitors}>
+                  <defs>
+                    <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="colorPageviews" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--color-cta)" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="var(--color-cta)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
                   <XAxis
-                    type="number"
+                    dataKey="date"
                     stroke="var(--text-muted)"
                     fontSize={12}
                     tickLine={false}
                     axisLine={false}
                   />
                   <YAxis
-                    type="category"
-                    dataKey="source"
                     stroke="var(--text-muted)"
                     fontSize={12}
                     tickLine={false}
                     axisLine={false}
-                    width={120}
                   />
                   <Tooltip
                     contentStyle={{
@@ -650,70 +585,196 @@ export default function AnalyticsPage() {
                     }}
                     labelStyle={{ color: 'var(--text-primary)' }}
                   />
-                  <Bar
+                  <Area
+                    type="monotone"
                     dataKey="users"
                     name="Uživatelé"
-                    fill="var(--color-primary)"
-                    radius={[0, 6, 6, 0]}
+                    stroke="var(--color-primary)"
+                    fill="url(#colorUsers)"
+                    strokeWidth={2}
                   />
-                </BarChart>
+                  <Area
+                    type="monotone"
+                    dataKey="pageviews"
+                    name="Zobrazení"
+                    stroke="var(--color-cta)"
+                    fill="url(#colorPageviews)"
+                    strokeWidth={2}
+                  />
+                </AreaChart>
               </ResponsiveContainer>
             </div>
-            {data.trafficSources.length === 0 && (
+          </motion.div>
+        ) : null}
+
+        {/* Two columns: Top Pages + Traffic Sources */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Top Pages */}
+          {loading ? (
+            <TaskListSkeleton />
+          ) : data ? (
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.45 }}
+              className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-5"
+            >
+              <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)] font-[family-name:var(--font-heading)]">
+                  Nejnavštěvovanější stránky
+                </h3>
+                <span className="text-xs text-[var(--text-muted)]">30 dní</span>
+              </div>
+              <div className="space-y-2">
+                {data.topPages.map((page, i) => {
+                  const maxViews = data.topPages[0]?.views || 1;
+                  const width = (page.views / maxViews) * 100;
+                  return (
+                    <div key={i} className="group">
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="text-[var(--text-secondary)] truncate max-w-[60%]" title={page.page}>
+                          {page.page}
+                        </span>
+                        <span className="text-[var(--text-muted)] flex gap-3">
+                          <span>{page.views.toLocaleString('cs-CZ')} zobrazení</span>
+                          <span>{page.users.toLocaleString('cs-CZ')} uživatelů</span>
+                        </span>
+                      </div>
+                      <div className="h-1.5 bg-[var(--bg-primary)] rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-[var(--color-primary)] transition-all duration-500"
+                          style={{ width: `${width}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+                {data.topPages.length === 0 && (
+                  <p className="text-sm text-[var(--text-muted)] text-center py-4">
+                    Žádná data
+                  </p>
+                )}
+              </div>
+            </motion.div>
+          ) : null}
+
+          {/* Traffic Sources */}
+          {loading ? (
+            <TaskListSkeleton />
+          ) : data ? (
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.5 }}
+              className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-5"
+            >
+              <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)] font-[family-name:var(--font-heading)]">
+                  Zdroje návštěvnosti
+                </h3>
+                <span className="text-xs text-[var(--text-muted)]">30 dní</span>
+              </div>
+              <div className="h-[240px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={data.trafficSources}
+                    layout="vertical"
+                    margin={{ left: 0, right: 20 }}
+                  >
+                    <XAxis
+                      type="number"
+                      stroke="var(--text-muted)"
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="source"
+                      stroke="var(--text-muted)"
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                      width={120}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: 'var(--bg-surface)',
+                        border: '1px solid var(--border-default)',
+                        borderRadius: '12px',
+                        fontSize: '12px',
+                      }}
+                      labelStyle={{ color: 'var(--text-primary)' }}
+                    />
+                    <Bar
+                      dataKey="users"
+                      name="Uživatelé"
+                      fill="var(--color-primary)"
+                      radius={[0, 6, 6, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              {data.trafficSources.length === 0 && (
+                <p className="text-sm text-[var(--text-muted)] text-center py-4">
+                  Žádná data
+                </p>
+              )}
+            </motion.div>
+          ) : null}
+        </div>
+
+        {/* Key Events */}
+        {loading ? (
+          <TaskListSkeleton />
+        ) : data ? (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.55 }}
+            className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-5"
+          >
+            <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+              <h3 className="text-sm font-semibold text-[var(--text-primary)] font-[family-name:var(--font-heading)]">
+                Klíčové události
+              </h3>
+              <span className="text-xs text-[var(--text-muted)]">30 dní</span>
+            </div>
+            {data.keyEvents.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {data.keyEvents.map((event) => {
+                  const color = EVENT_COLORS[event.event] || 'var(--color-primary)';
+                  const label = EVENT_LABELS[event.event] || event.event;
+                  return (
+                    <div
+                      key={event.event}
+                      className="flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-default)]"
+                    >
+                      <div
+                        className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: `${color}15` }}
+                      >
+                        <MousePointerClick className="w-4 h-4" style={{ color }} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-lg font-bold text-[var(--text-primary)] font-[family-name:var(--font-heading)]">
+                          {event.count.toLocaleString('cs-CZ')}
+                        </p>
+                        <p className="text-xs text-[var(--text-muted)] truncate">{label}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
               <p className="text-sm text-[var(--text-muted)] text-center py-4">
-                Žádná data
+                Žádné klíčové události za toto období
               </p>
             )}
           </motion.div>
         ) : null}
-      </div>
-
-      {/* Key Events */}
-      {loading ? (
-        <TaskListSkeleton />
-      ) : data ? (
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.55 }}
-          className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-5"
-        >
-          <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4 font-[family-name:var(--font-heading)]">
-            Klíčové události
-          </h3>
-          {data.keyEvents.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {data.keyEvents.map((event) => {
-                const color = EVENT_COLORS[event.event] || 'var(--color-primary)';
-                const label = EVENT_LABELS[event.event] || event.event;
-                return (
-                  <div
-                    key={event.event}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-default)]"
-                  >
-                    <div
-                      className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                      style={{ backgroundColor: `${color}15` }}
-                    >
-                      <MousePointerClick className="w-4 h-4" style={{ color }} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-lg font-bold text-[var(--text-primary)] font-[family-name:var(--font-heading)]">
-                        {event.count.toLocaleString('cs-CZ')}
-                      </p>
-                      <p className="text-xs text-[var(--text-muted)] truncate">{label}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="text-sm text-[var(--text-muted)] text-center py-4">
-              Žádné klíčové události za toto období
-            </p>
-          )}
-        </motion.div>
-      ) : null}
+        </>
+      )}
 
       {/* Divider between GA and Meta sections */}
       <div className="relative py-4">
