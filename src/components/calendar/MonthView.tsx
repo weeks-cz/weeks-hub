@@ -6,6 +6,7 @@ import { getDaysInMonthGrid, WEEKDAY_NAMES, isSameMonth, isToday, toDateKey } fr
 import type { CalendarEvent } from '@/types/database';
 import type { DayTask } from './DayDetailModal';
 import { taskChipStyle, dalsiLabel } from './taskChip';
+import type { PresouvanaPolozka } from './usePresun';
 
 interface MonthViewProps {
   currentDate: Date;
@@ -14,9 +15,11 @@ interface MonthViewProps {
   onEventClick: (event: CalendarEvent) => void;
   onDayClick: (date: Date) => void;
   onTaskClick: (task: DayTask) => void;
+  /** Začátek přesunu; když chybí, položky se netáhnou. */
+  onPresunStart?: (e: React.PointerEvent, polozka: PresouvanaPolozka) => void;
 }
 
-export function MonthView({ currentDate, events, taskDueDates, onEventClick, onDayClick, onTaskClick }: MonthViewProps) {
+export function MonthView({ currentDate, events, taskDueDates, onEventClick, onDayClick, onTaskClick, onPresunStart }: MonthViewProps) {
   const days = getDaysInMonthGrid(currentDate);
 
   const getEventsForDay = (day: Date) => {
@@ -61,6 +64,7 @@ export function MonthView({ currentDate, events, taskDueDates, onEventClick, onD
           return (
             <div
               key={idx}
+              data-den={toDateKey(day)}
               onClick={() => onDayClick(day)}
               className={cn(
                 'min-h-[80px] sm:min-h-[100px] p-1 sm:p-1.5 border-r border-b border-[var(--border-default)] cursor-pointer hover:bg-[var(--bg-surface)] transition-colors',
@@ -85,12 +89,17 @@ export function MonthView({ currentDate, events, taskDueDates, onEventClick, onD
 
               <div className="space-y-0.5">
                 {dayEvents.slice(0, 3).map((event) => (
-                  <EventCard
+                  <div
                     key={event.id}
-                    event={event}
-                    compact
-                    onClick={() => { onEventClick(event); }}
-                  />
+                    // Tábory se netáhnou — jsou z jiné tabulky a termín se
+                    // mění v sekci Tábory, ne odsud.
+                    onPointerDown={(e) => {
+                      if (!onPresunStart || event.id.startsWith('camp-')) return;
+                      onPresunStart(e, { typ: 'udalost', id: event.id, titul: event.title, celodenni: event.all_day });
+                    }}
+                  >
+                    <EventCard event={event} compact onClick={() => { onEventClick(event); }} />
+                  </div>
                 ))}
                 {dayTasks.slice(0, 2).map((task) => (
                   <button
@@ -98,7 +107,8 @@ export function MonthView({ currentDate, events, taskDueDates, onEventClick, onD
                     // Bez stopPropagation by klik probublal na buňku dne a místo
                     // úkolu by se otevřel detail dne.
                     onClick={(e) => { e.stopPropagation(); onTaskClick(task); }}
-                    className="w-full text-left px-1.5 py-0.5 rounded text-xs font-medium truncate hover:opacity-80 transition-opacity"
+                    onPointerDown={(e) => onPresunStart?.(e, { typ: 'ukol', id: task.id, titul: task.title, celodenni: true })}
+                    className="w-full text-left px-1.5 py-0.5 rounded text-xs font-medium truncate hover:opacity-80 transition-opacity touch-none"
                     style={taskChipStyle(task.date)}
                     title={task.title}
                   >

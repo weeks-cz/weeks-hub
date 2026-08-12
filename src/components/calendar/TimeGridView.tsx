@@ -7,6 +7,7 @@ import { rozvrhniPrekryvy, type Interval } from '@/lib/utils/overlap';
 import { EVENT_TYPE_CONFIG, type CalendarEvent } from '@/types/database';
 import type { DayTask } from './DayDetailModal';
 import { taskChipStyle } from './taskChip';
+import type { PresouvanaPolozka } from './usePresun';
 import { cs } from 'date-fns/locale';
 
 const HODINA_PX = 48;
@@ -24,6 +25,8 @@ interface TimeGridViewProps {
   onTaskClick: (task: DayTask) => void;
   /** Klik do prázdna v mřížce — den a čas, kde se má založit událost. */
   onSlotClick: (date: Date, cas: string) => void;
+  /** Začátek přesunu; když chybí, položky se netáhnou. */
+  onPresunStart?: (e: React.PointerEvent, polozka: PresouvanaPolozka) => void;
 }
 
 interface UmistenaUdalost extends Interval {
@@ -43,6 +46,7 @@ export function TimeGridView({
   onDayClick,
   onTaskClick,
   onSlotClick,
+  onPresunStart,
 }: TimeGridViewProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   // Tailwind hleda tridy staticky ve zdrojaku, takze pocet sloupcu nejde
@@ -167,15 +171,19 @@ export function TimeGridView({
             celý den
           </div>
           {days.map((day, idx) => (
-            <div key={idx} className="min-h-[34px] p-1 space-y-1 border-l border-[var(--border-default)]">
+            <div key={idx} data-den={toDateKey(day)} className="min-h-[34px] p-1 space-y-1 border-l border-[var(--border-default)]">
               {celodenniProDen(day).map((event) => {
                 const barva = event.color || EVENT_TYPE_CONFIG[event.event_type].color;
                 return (
                   <button
                     key={event.id}
                     onClick={() => onEventClick(event)}
+                    onPointerDown={(e) => {
+                      if (!onPresunStart || event.id.startsWith('camp-')) return;
+                      onPresunStart(e, { typ: 'udalost', id: event.id, titul: event.title, celodenni: true });
+                    }}
                     title={event.title}
-                    className="w-full text-left px-1.5 py-0.5 rounded text-[11px] font-medium truncate hover:opacity-80 transition-opacity"
+                    className="w-full text-left px-1.5 py-0.5 rounded text-[11px] font-medium truncate hover:opacity-80 transition-opacity touch-none"
                     style={{ backgroundColor: `${barva}25`, color: barva }}
                   >
                     {event.title}
@@ -186,8 +194,9 @@ export function TimeGridView({
                 <button
                   key={task.id}
                   onClick={() => onTaskClick(task)}
+                  onPointerDown={(e) => onPresunStart?.(e, { typ: 'ukol', id: task.id, titul: task.title, celodenni: true })}
                   title={task.title}
-                  className="w-full text-left px-1.5 py-0.5 rounded text-[11px] font-medium truncate hover:opacity-80 transition-opacity"
+                  className="w-full text-left px-1.5 py-0.5 rounded text-[11px] font-medium truncate hover:opacity-80 transition-opacity touch-none"
                   style={taskChipStyle(task.date)}
                 >
                   📋 {task.title}
@@ -221,6 +230,8 @@ export function TimeGridView({
               return (
                 <div
                   key={idx}
+                  data-den={klic}
+                  data-mrizka={HODINA_PX}
                   onClick={(e) => handleSlotClick(day, e)}
                   className="relative border-l border-[var(--border-default)] cursor-pointer"
                 >
@@ -254,8 +265,13 @@ export function TimeGridView({
                       <button
                         key={event.id}
                         onClick={(e) => { e.stopPropagation(); onEventClick(event); }}
+                        onPointerDown={(e) => {
+                          e.stopPropagation();
+                          if (!onPresunStart || event.id.startsWith('camp-')) return;
+                          onPresunStart(e, { typ: 'udalost', id: event.id, titul: event.title, celodenni: false });
+                        }}
                         title={`${formatTime(event.start_date)} ${event.title}`}
-                        className="absolute z-10 overflow-hidden rounded-md border px-1.5 py-0.5 text-left text-[11px] leading-tight hover:z-30 hover:shadow-lg transition-shadow"
+                        className="absolute z-10 overflow-hidden rounded-md border px-1.5 py-0.5 text-left text-[11px] leading-tight hover:z-30 hover:shadow-lg transition-shadow touch-none"
                         style={{
                           top: (polozka.od / 60) * HODINA_PX,
                           height: Math.max(18, vyska - 2),

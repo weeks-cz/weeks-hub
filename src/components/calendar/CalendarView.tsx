@@ -10,6 +10,7 @@ import { CreateEventModal } from './CreateEventModal';
 import { EventDetailModal } from './EventDetailModal';
 import { SubscribeModal } from './SubscribeModal';
 import { DayDetailModal, type DayTask } from './DayDetailModal';
+import { usePresun, type PresouvanaPolozka, type CilPresunu } from './usePresun';
 import { useEvents } from '@/hooks/useEvents';
 import { useTasks } from '@/hooks/useTasks';
 import { useCamps } from '@/hooks/useCamps';
@@ -61,7 +62,7 @@ export function CalendarView() {
   const router = useRouter();
 
   const { events, loading, createEvent, updateEvent, deleteEvent } = useEvents();
-  const { tasks } = useTasks();
+  const { tasks, updateTask } = useTasks();
   const { camps } = useCamps();
 
   // Convert camps to CalendarEvent-like objects for calendar display
@@ -130,6 +131,41 @@ export function CalendarView() {
   const handleTaskClick = useCallback((task: DayTask) => {
     router.push(`/board?task=${task.id}`);
   }, [router]);
+
+  /**
+   * Puštění přesouvané položky. updateEvent/updateTask zapisují na server a
+   * teprve pak překreslí z databáze — proto tu není optimistický zápis ani
+   * rollback; chybu ohlásí toast z hooku.
+   */
+  const handlePresun = useCallback(async (p: PresouvanaPolozka, cil: CilPresunu) => {
+    if (p.typ === 'ukol') {
+      const puvodni = tasks.find((t) => t.id === p.id)?.due_date;
+      if (puvodni?.slice(0, 10) === cil.den) return;
+      await updateTask(p.id, { due_date: cil.den });
+      return;
+    }
+
+    const event = events.find((e) => e.id === p.id);
+    if (!event) return;
+
+    const start = new Date(event.start_date);
+    const [rok, mesic, den] = cil.den.split('-').map(Number);
+    const novy = new Date(start);
+    novy.setFullYear(rok, mesic - 1, den);
+    if (cil.minuty !== null) {
+      novy.setHours(Math.floor(cil.minuty / 60), cil.minuty % 60, 0, 0);
+    }
+    if (novy.getTime() === start.getTime()) return;
+
+    // Délka se zachovává, přesouvá se celá událost, ne jen její začátek.
+    const delka = event.end_date ? new Date(event.end_date).getTime() - start.getTime() : 0;
+    await handleUpdateEvent(event.id, {
+      start_date: novy.toISOString(),
+      end_date: event.end_date ? new Date(novy.getTime() + delka).toISOString() : null,
+    });
+  }, [tasks, events, updateTask, handleUpdateEvent]);
+
+  const { zacni: zacniPresun, stav: presun } = usePresun(handlePresun);
 
   const handleCreateFromDay = () => {
     if (!dayDetail) return;
@@ -264,6 +300,7 @@ export function CalendarView() {
           onEventClick={handleEventClick}
           onDayClick={handleDayClick}
           onTaskClick={handleTaskClick}
+          onPresunStart={zacniPresun}
         />
       ) : (
         <TimeGridView
@@ -274,6 +311,7 @@ export function CalendarView() {
           onDayClick={handleDayClick}
           onTaskClick={handleTaskClick}
           onSlotClick={handleSlotClick}
+          onPresunStart={zacniPresun}
         />
       )}
 
@@ -303,6 +341,16 @@ export function CalendarView() {
         onTaskClick={handleTaskClick}
         onCreateEvent={handleCreateFromDay}
       />
+
+      {/* Náhled taženého prvku — bez něj není při přesunu vidět, co se veze. */}
+      {presun && (
+        <div
+          className="fixed z-50 pointer-events-none px-2 py-1 rounded-md text-xs font-medium shadow-lg bg-[var(--color-primary)] text-white max-w-[240px] truncate"
+          style={{ left: presun.x + 12, top: presun.y + 12 }}
+        >
+          {presun.polozka.titul}
+        </div>
+      )}
 
       <SubscribeModal isOpen={subscribeOpen} onClose={() => setSubscribeOpen(false)} />
     </div>
