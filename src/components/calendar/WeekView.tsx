@@ -120,6 +120,14 @@ export function WeekView({
   return (
     <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
       <div className="min-w-[760px] rounded-xl border border-[var(--border-default)] overflow-hidden">
+        {/*
+          Hlavička i celodenní pruh jsou UVNITŘ rolovacího kontejneru a drží se
+          přes sticky. Když byly nad ním, zúžil svislý posuvník jen mřížku pod
+          nimi — sedm sloupců si tu ztrátu rozdělilo a doprava se rozdíl
+          kumuloval, takže hlavička s mřížkou opticky nelícovala.
+        */}
+        <div ref={scrollRef} className="max-h-[620px] overflow-y-auto">
+        <div className="sticky top-0 z-40 bg-[var(--bg-primary)]">
         {/* Hlavička dnů */}
         <div className="grid grid-cols-[56px_repeat(7,minmax(0,1fr))] border-b border-[var(--border-default)]">
           <div className="bg-[var(--bg-surface)]" />
@@ -185,9 +193,9 @@ export function WeekView({
             </div>
           ))}
         </div>
+        </div>
 
         {/* Časová mřížka */}
-        <div ref={scrollRef} className="max-h-[560px] overflow-y-auto">
           <div className="grid grid-cols-[56px_repeat(7,minmax(0,1fr))]" style={{ height: DEN_PX }}>
             {/* Osa hodin */}
             <div className="relative">
