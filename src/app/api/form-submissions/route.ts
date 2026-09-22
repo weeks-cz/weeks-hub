@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { form_type } = body;
 
-    if (!form_type || !['waitlist', 'contact', 'shop_interest'].includes(form_type)) {
+    if (!form_type || !['waitlist', 'contact', 'shop_interest', 'firmy', 'oslavy'].includes(form_type)) {
       return NextResponse.json({ error: 'Invalid form_type' }, { status: 400 });
     }
 
@@ -47,16 +47,27 @@ export async function POST(request: NextRequest) {
         console.error('Form submission insert error:', error);
         return NextResponse.json({ error: 'Failed to save submission' }, { status: 500 });
       }
-    } else if (form_type === 'contact') {
+    } else if (form_type === 'contact' || form_type === 'firmy' || form_type === 'oslavy') {
+      // Tři typy jednoho tvaru: rodičovský dotaz z /kontakt, firemní poptávka
+      // z /firmy a poptávka oslavy z /oslavy. Liší se jen tím, co web přibalí
+      // navíc — firma, telefon, id nabídky — a tím, pod jakým štítkem to má
+      // v hubu ležet, aby se na to dalo filtrovat zvlášť.
+      //
+      // Web posílá česká jména polí (`firma`, `telefon`, `typ`), tabulka je
+      // má anglicky jako zbytek schématu. Mapuje se tady, ne v databázi.
       if (!body.sender_name || !body.message) {
         return NextResponse.json({ error: 'Name and message are required for contact form' }, { status: 400 });
       }
 
       const { error } = await supabase.from('form_submissions').insert({
-        form_type: 'contact',
+        form_type,
         email: body.email,
         sender_name: body.sender_name,
         message: body.message,
+        company: body.firma || null,
+        phone: body.telefon || null,
+        inquiry_type: body.typ || null,
+        gdpr_consent: body.gdpr_consent ?? null,
       });
 
       if (error) {

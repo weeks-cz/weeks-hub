@@ -3,7 +3,7 @@ export type TaskStatus = 'backlog' | 'todo' | 'in_progress' | 'review' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 export type EventType = 'camp' | 'meeting' | 'reminder' | 'deadline';
 export type CampStatus = 'collecting_interest' | 'open_no_link' | 'open_with_link' | 'full' | 'closed';
-export type FormSubmissionType = 'waitlist' | 'contact' | 'shop_interest';
+export type FormSubmissionType = 'waitlist' | 'contact' | 'shop_interest' | 'firmy' | 'oslavy';
 export type FormSubmissionStatus = 'new' | 'processed' | 'archived';
 export type ShopProductType = 'set' | 'upgrade-kit' | 'project';
 
@@ -291,6 +291,11 @@ export interface FormSubmission {
   // Contact fields
   sender_name: string | null;
   message: string | null;
+  // Poptávky z /firmy a /oslavy
+  company: string | null;
+  phone: string | null;
+  /** Id nabídky z /firmy, nebo `oslava`. */
+  inquiry_type: string | null;
   // Shop interest fields
   product_slug: string | null;
   product_name: string | null;
@@ -310,6 +315,8 @@ export const FORM_TYPE_CONFIG: Record<FormSubmissionType, { label: string; color
   waitlist: { label: 'Waitlist', color: '#8B5CF6' },
   contact: { label: 'Kontakt', color: '#3B82F6' },
   shop_interest: { label: 'E-shop zájem', color: '#10B981' },
+  firmy: { label: 'Firmy', color: '#6366F1' },
+  oslavy: { label: 'Oslavy', color: '#F59E0B' },
 };
 
 export const SHOP_PRODUCT_TYPE_CONFIG: Record<ShopProductType, { label: string; color: string }> = {

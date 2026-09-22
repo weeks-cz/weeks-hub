@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Mail, Baby, BookOpen, MessageSquare, User, Clock, CheckCircle, Archive, Trash2, Package } from 'lucide-react';
+import { X, Mail, Baby, BookOpen, MessageSquare, User, Clock, CheckCircle, Archive, Trash2, Package, Building2, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { formatDateTime, formatRelative } from '@/lib/utils/date';
@@ -17,6 +17,18 @@ interface SubmissionDetailModalProps {
   onUpdateNotes: (id: string, notes: string, email: string) => Promise<boolean>;
   onDelete: (id: string, email: string) => Promise<boolean>;
 }
+
+/**
+ * Popisky pro `inquiry_type`. Id pocházejí z `src/lib/firmy.ts` na weeks.cz
+ * (`oslava` z `/oslavy`) — hub je nemá odkud načíst, takže je tu opsaný
+ * krátký číselník. Neznámé id se vypíše tak, jak přišlo, ne jako prázdno.
+ */
+const INQUIRY_TYPE_LABELS: Record<string, string> = {
+  'deti-zamestnancu': 'Dny pro děti zaměstnanců',
+  workshopy: 'Workshopy a teambuilding',
+  partnerstvi: 'Partnerství',
+  oslava: 'Oslava pro děti',
+};
 
 export function SubmissionDetailModal({
   submission,
@@ -186,6 +198,46 @@ export function SubmissionDetailModal({
                         <div className="text-sm text-[var(--text-primary)]">{submission.sender_name}</div>
                       </div>
                     </div>
+
+                    {/* Firma, telefon a typ poptávky chodí jen z /firmy a /oslavy —
+                        u běžného kontaktního dotazu jsou prázdné, takže se
+                        vykreslí jen když je co ukázat. */}
+                    {submission.company && (
+                      <div className="flex items-center gap-3">
+                        <Building2 className="w-4 h-4 text-[var(--text-muted)] shrink-0" />
+                        <div>
+                          <div className="text-xs text-[var(--text-muted)]">Firma</div>
+                          <div className="text-sm text-[var(--text-primary)]">{submission.company}</div>
+                        </div>
+                      </div>
+                    )}
+
+                    {submission.phone && (
+                      <div className="flex items-center gap-3">
+                        <Phone className="w-4 h-4 text-[var(--text-muted)] shrink-0" />
+                        <div>
+                          <div className="text-xs text-[var(--text-muted)]">Telefon</div>
+                          <a
+                            href={`tel:${submission.phone.replace(/\s/g, '')}`}
+                            className="text-sm text-[var(--text-primary)] hover:underline"
+                          >
+                            {submission.phone}
+                          </a>
+                        </div>
+                      </div>
+                    )}
+
+                    {submission.inquiry_type && (
+                      <div className="flex items-center gap-3">
+                        <BookOpen className="w-4 h-4 text-[var(--text-muted)] shrink-0" />
+                        <div>
+                          <div className="text-xs text-[var(--text-muted)]">Co poptávají</div>
+                          <div className="text-sm text-[var(--text-primary)]">
+                            {INQUIRY_TYPE_LABELS[submission.inquiry_type] ?? submission.inquiry_type}
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Message */}
                     <div className="flex items-start gap-3">

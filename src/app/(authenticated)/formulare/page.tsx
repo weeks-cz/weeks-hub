@@ -50,7 +50,8 @@ function FormulareObsah() {
           obsahuje(s.child_name, dotaz) ||
           obsahuje(s.sender_name, dotaz) ||
           obsahuje(s.message, dotaz) ||
-          obsahuje(s.product_name, dotaz),
+          obsahuje(s.product_name, dotaz) ||
+          obsahuje(s.company, dotaz),
       );
     }
     return result;
@@ -83,7 +84,7 @@ function FormulareObsah() {
       <PageHeader
         icon={FileText}
         title="Formuláře"
-        subtitle="Waitlist, kontaktní formuláře a zájmy z e-shopu"
+        subtitle="Waitlist, kontaktní formuláře, poptávky firem a oslav a zájmy z e-shopu"
       />
 
       {/* Filters */}
