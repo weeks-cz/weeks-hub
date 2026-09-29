@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input, Textarea } from '@/components/ui/Input';
+import { TimeInput } from '@/components/ui/TimeInput';
 import { Select } from '@/components/ui/Select';
 import { Avatar } from '@/components/ui/Avatar';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -139,12 +140,7 @@ export function EventDetailModal({ event, isOpen, onClose, onUpdate, onDelete }:
                     className="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-xl text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-colors [color-scheme:dark]"
                   />
                   {!allDay && (
-                    <input
-                      type="time"
-                      value={startTime}
-                      onChange={(e) => setStartTime(e.target.value)}
-                      className="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-xl text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-colors [color-scheme:dark]"
-                    />
+                    <TimeInput aria-label="Čas začátku" value={startTime} onChange={setStartTime} />
                   )}
                 </div>
                 <div className="space-y-1.5">
@@ -156,12 +152,7 @@ export function EventDetailModal({ event, isOpen, onClose, onUpdate, onDelete }:
                     className="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-xl text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-colors [color-scheme:dark]"
                   />
                   {!allDay && (
-                    <input
-                      type="time"
-                      value={endTime}
-                      onChange={(e) => setEndTime(e.target.value)}
-                      className="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-xl text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-colors [color-scheme:dark]"
-                    />
+                    <TimeInput aria-label="Čas konce" value={endTime} onChange={setEndTime} />
                   )}
                 </div>
               </div>

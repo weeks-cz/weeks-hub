@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input, Textarea } from '@/components/ui/Input';
+import { TimeInput } from '@/components/ui/TimeInput';
 import { Select } from '@/components/ui/Select';
 import { EVENT_TYPE_CONFIG, type EventType } from '@/types/database';
 
@@ -146,13 +147,7 @@ export function CreateEventModal({ isOpen, onClose, onSubmit, defaultDate, defau
             className="[color-scheme:dark]"
           />
           {!allDay && (
-            <Input
-              label="Čas začátku"
-              type="time"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-              className="[color-scheme:dark]"
-            />
+            <TimeInput label="Čas začátku" value={startTime} onChange={setStartTime} />
           )}
         </div>
 
@@ -165,13 +160,7 @@ export function CreateEventModal({ isOpen, onClose, onSubmit, defaultDate, defau
             className="[color-scheme:dark]"
           />
           {!allDay && endDate && (
-            <Input
-              label="Čas konce"
-              type="time"
-              value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
-              className="[color-scheme:dark]"
-            />
+            <TimeInput label="Čas konce" value={endTime} onChange={setEndTime} />
           )}
         </div>
 
