@@ -58,7 +58,9 @@ export default function RegistracePage() {
         .filter(sedi);
       return { ...g, registrations };
     })
-    .filter((g) => g.registrations.length > 0);
+    // Bez filtru zůstane vidět i turnus bez přihlášek (je v prodeji, jen
+    // ještě prázdný); při filtrování nebo hledání by jen překážel.
+    .filter((g) => g.registrations.length > 0 || (statusFilter === 'all' && !jenPozornost && !dotaz));
 
   const vsechny = byTerm.flatMap((g) => g.registrations);
   const pocetPozornost = vsechny.filter((r) => vyzadujePozornost(r)).length;

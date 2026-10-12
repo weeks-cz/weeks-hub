@@ -65,6 +65,9 @@ export function TermCard({ group, onSelect }: { group: TermGroup; onSelect: (r: 
             transition={{ duration: 0.2 }}
             className="overflow-hidden border-t border-[var(--border-default)]"
           >
+            {group.registrations.length === 0 && (
+              <p className="px-5 py-4 text-sm text-[var(--text-muted)]">Zatím žádná přihláška.</p>
+            )}
             <ul className="divide-y divide-[var(--border-default)]">
               {aktivni.map((r) => (
                 <Radek key={r.id} r={r} onSelect={onSelect} />

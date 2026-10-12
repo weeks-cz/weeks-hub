@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import type { Registration } from '@/types/database';
-import { programName, programCapacity, locationName } from '@/lib/kvCamps';
+import { programName, programCapacity, locationName, KV_TURNUSY } from '@/lib/kvCamps';
 
 export interface TermGroup {
   termId: string;
@@ -17,23 +17,31 @@ export interface TermGroup {
   paidCount: number;
 }
 
+function novaSkupina(termId: string, program: string, locationId: string, start: string, end: string): TermGroup {
+  return {
+    termId,
+    program,
+    programName: programName(program),
+    locationName: locationName(locationId),
+    termStart: start,
+    termEnd: end,
+    capacity: programCapacity(program),
+    registrations: [],
+    activeCount: 0,
+    paidCount: 0,
+  };
+}
+
 function groupByTerm(regs: Registration[]): TermGroup[] {
   const map = new Map<string, TermGroup>();
+  // Turnusy v prodeji napřed, ať jsou vidět i bez jediné přihlášky.
+  for (const t of KV_TURNUSY) {
+    map.set(t.termId, novaSkupina(t.termId, t.program, t.locationId, t.start, t.end));
+  }
   for (const r of regs) {
     let g = map.get(r.term_id);
     if (!g) {
-      g = {
-        termId: r.term_id,
-        program: r.program,
-        programName: programName(r.program),
-        locationName: locationName(r.location_id),
-        termStart: r.term_start,
-        termEnd: r.term_end,
-        capacity: programCapacity(r.program),
-        registrations: [],
-        activeCount: 0,
-        paidCount: 0,
-      };
+      g = novaSkupina(r.term_id, r.program, r.location_id, r.term_start, r.term_end);
       map.set(r.term_id, g);
     }
     g.registrations.push(r);

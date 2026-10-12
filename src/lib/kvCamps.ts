@@ -10,11 +10,32 @@ export interface KvProgramInfo {
 export const KV_PROGRAMS: Record<string, KvProgramInfo> = {
   'letni-primestsky': { name: 'Letní příměstský tábor', capacity: 15, price: 4990 },
   'mix': { name: 'Víkendový tábor chytrých technologií', capacity: 15, price: 2990 },
+  // Od léta 2027 web zapisuje do `program` id tábora (turnus.taborIds[0] ve weeks_web).
+  'chytre-technologie': { name: 'Tábor chytrých technologií', capacity: 15, price: 5990 },
 };
 
 export const KV_LOCATIONS: Record<string, string> = {
   'karlovy-vary': 'Karlovy Vary',
 };
+
+export interface KvTurnus {
+  termId: string;
+  program: string;
+  locationId: string;
+  start: string;
+  end: string;
+}
+
+/**
+ * Turnusy, které jsou na weeks.cz v prodeji — Registrace je ukáže i bez
+ * jediné přihlášky. Skupiny se jinak skládají jen z registrací, takže
+ * otevřený turnus bez přihlášek v hubu nebyl vůbec vidět.
+ * Zrcadlí `TURNUSY` ve weeks_web (src/lib/turnusy.ts), stav `otevreno`.
+ */
+export const KV_TURNUSY: KvTurnus[] = [
+  { termId: 'kv-2027-cervenec', program: 'chytre-technologie', locationId: 'karlovy-vary', start: '2027-07-26', end: '2027-07-30' },
+  { termId: 'kv-2027-srpen', program: 'chytre-technologie', locationId: 'karlovy-vary', start: '2027-08-02', end: '2027-08-06' },
+];
 
 export function programName(id: string): string {
   return KV_PROGRAMS[id]?.name ?? id;
