@@ -24,7 +24,9 @@ export function duvodyPozornosti(r: Registration, dnesRef: Date = new Date()): s
   // Záloha je zaplacená, doplatek ne. Nejde o „nezaplaceno od nuly", proto jiný štítek.
   if (r.payment_status === 'partial') duvody.push('Čeká na doplatek');
 
-  if (r.payment_status === 'completed') {
+  // Web vystaví fakturu i potvrzení už při první platbě, tedy i u zálohy
+  // (fakturoid_invoice_id nese první vystavenou fakturu).
+  if (r.payment_status === 'completed' || r.payment_status === 'partial') {
     if (!r.fakturoid_invoice_id) duvody.push('Chybí faktura');
     if (!r.confirmation_sent_at) duvody.push('Neodeslané potvrzení');
   }
