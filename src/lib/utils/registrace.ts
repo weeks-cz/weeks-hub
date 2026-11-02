@@ -21,6 +21,8 @@ export function duvodyPozornosti(r: Registration, dnesRef: Date = new Date()): s
   const duvody: string[] = [];
 
   if (r.payment_status === 'pending') duvody.push('Čeká na platbu');
+  // Záloha je zaplacená, doplatek ne. Nejde o „nezaplaceno od nuly", proto jiný štítek.
+  if (r.payment_status === 'partial') duvody.push('Čeká na doplatek');
 
   if (r.payment_status === 'completed') {
     if (!r.fakturoid_invoice_id) duvody.push('Chybí faktura');

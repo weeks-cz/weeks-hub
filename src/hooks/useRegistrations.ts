@@ -13,8 +13,9 @@ export interface TermGroup {
   termEnd: string;
   capacity: number;
   registrations: Registration[];
-  activeCount: number; // ne-cancelled (drží místo)
-  paidCount: number;
+  activeCount: number; // ne-cancelled (drží místo) — včetně 'partial', ten místo drží stejně jako zaplacený
+  paidCount: number; // plně zaplacené (payment_status 'completed')
+  partialCount: number; // složená záloha, doplatek ještě čeká
 }
 
 function novaSkupina(termId: string, program: string, locationId: string, start: string, end: string): TermGroup {
@@ -29,6 +30,7 @@ function novaSkupina(termId: string, program: string, locationId: string, start:
     registrations: [],
     activeCount: 0,
     paidCount: 0,
+    partialCount: 0,
   };
 }
 
@@ -47,6 +49,8 @@ function groupByTerm(regs: Registration[]): TermGroup[] {
     g.registrations.push(r);
     if (r.status !== 'cancelled') g.activeCount++;
     if (r.payment_status === 'completed') g.paidCount++;
+    // Záloha se do „zaplaceno" nepočítá — doplatek ještě nepřišel.
+    if (r.payment_status === 'partial') g.partialCount++;
   }
   return Array.from(map.values()).sort((a, b) => a.termStart.localeCompare(b.termStart));
 }

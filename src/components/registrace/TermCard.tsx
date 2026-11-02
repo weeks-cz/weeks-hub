@@ -45,6 +45,9 @@ export function TermCard({ group, onSelect }: { group: TermGroup; onSelect: (r: 
             {group.activeCount}/{group.capacity || '—'}
           </span>
           <span className="text-sm text-[var(--color-success,#10B981)]">{group.paidCount} zaplaceno</span>
+          {group.partialCount > 0 && (
+            <span className="text-sm text-[#F59E0B]">{group.partialCount} na doplatek</span>
+          )}
           <button
             onClick={openRoster}
             title="Tisk soupisky termínu"

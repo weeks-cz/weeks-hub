@@ -35,6 +35,9 @@ export function EkonomikaPanel({ meta, metaChyba, registrations, bezRegistraci }
   // takže jejich součet je útrata od začátku — ne za posledních 7 dní.
   const utrata = meta?.campaigns.reduce((soucet, k) => soucet + k.spend, 0) ?? 0;
 
+  // Jen plně zaplacené. Záloha ('partial') se sem nepočítá: je zaplacená jen část
+  // a částka u ní nemusí být celá cena, takže by tržby nadhodnotila. Doplatek
+  // se objeví ve chvíli, kdy přejde na 'completed'.
   const zaplacene = registrations.filter(
     (r) => r.payment_status === 'completed' && r.status !== 'cancelled',
   );

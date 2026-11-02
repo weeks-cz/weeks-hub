@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, FileText, Printer, BellRing } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { Registration } from '@/types/database';
-import { PAYMENT_STATUS_CONFIG } from '@/types/database';
+import { paymentStatusConfig } from '@/types/database';
 import { ageFromBirthdate, programName, termLabel } from '@/lib/kvCamps';
 import { StatusBadges } from './StatusBadges';
 
@@ -158,7 +158,7 @@ export function RegistrationDetailPanel({
               </Section>
 
               <Section title="Platba">
-                <Row label="Stav" value={PAYMENT_STATUS_CONFIG[r.payment_status].label} />
+                <Row label="Stav" value={paymentStatusConfig(r.payment_status).label} />
                 <Row label="Částka" value={r.payment_amount ? `${r.payment_amount.toLocaleString('cs-CZ')} Kč` : '—'} />
                 <Row label="Metoda" value={r.payment_method} />
                 <Row label="Comgate stav" value={r.comgate_status} />

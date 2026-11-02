@@ -28,7 +28,11 @@ export function SeasonPanel({ registrations, byTerm, error }: SeasonPanelProps) 
   // Bez oprávnění (403) nebo při chybě se panel prostě nezobrazí.
   if (error || registrations.length === 0) return null;
 
-  const zaplacene = registrations.filter((r) => r.status === 'paid' || r.status === 'confirmed');
+  // Záloha (payment_status 'partial') má status 'confirmed', ale není zaplacená celá —
+  // do „zaplacené děti" ani do „vybráno" nepatří, dokud nepřijde doplatek.
+  const zaplacene = registrations.filter(
+    (r) => (r.status === 'paid' || r.status === 'confirmed') && r.payment_status !== 'partial',
+  );
   const trzby = zaplacene.reduce((soucet, r) => soucet + (r.payment_amount ?? 0), 0);
 
   const dnes = new Date().toISOString().slice(0, 10);

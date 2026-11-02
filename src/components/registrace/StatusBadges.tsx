@@ -1,6 +1,6 @@
 import type React from 'react';
 import type { Registration } from '@/types/database';
-import { PAYMENT_STATUS_CONFIG } from '@/types/database';
+import { paymentStatusConfig } from '@/types/database';
 import { FileText, Mail, ClipboardCheck, CreditCard, BellRing } from 'lucide-react';
 
 function fmt(iso: string | null): string | null {
@@ -29,7 +29,7 @@ export function StatusBadges({ r }: { r: Registration }) {
   // possible), but it must NOT look like it's genuinely awaiting payment. Show it
   // as 'Stornováno' (grey) and drop the reminder badge — no reminder is sent for it.
   const isCancelled = r.status === 'cancelled';
-  const pay = PAYMENT_STATUS_CONFIG[r.payment_status];
+  const pay = paymentStatusConfig(r.payment_status);
   const payLabel = isCancelled ? 'Stornováno' : pay.label;
   const payColor = isCancelled ? '#64748B' : pay.color;
   const confSent = fmt(r.confirmation_sent_at);

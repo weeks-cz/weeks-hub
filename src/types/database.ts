@@ -344,7 +344,10 @@ export const PROGRAM_CONFIG: Record<string, string> = {
 
 // --- Registrations (interní KV registrace, sdílená tabulka s weeks_web) ---
 export type RegistrationStatus = 'pending' | 'paid' | 'confirmed' | 'cancelled';
-export type RegistrationPaymentStatus = 'pending' | 'completed' | 'refunded';
+// 'partial' = složena záloha zaplacena, doplatek ještě čeká. Taková registrace
+// má status 'confirmed' a drží místo stejně jako 'completed', ale není plně zaplacena.
+export type RegistrationPaymentStatus = 'pending' | 'partial' | 'completed' | 'refunded';
+export type PaymentPlan = 'plna' | 'zaloha';
 export type PickupMethod = 'solo' | 'named_persons';
 
 export interface Registration {
@@ -373,6 +376,8 @@ export interface Registration {
   photo_consent: boolean | null;
   marketing_consent: boolean | null;
   payment_status: RegistrationPaymentStatus;
+  /** Starší řádky a stav před migrací to nemusí mít — čti opatrně. */
+  payment_plan?: PaymentPlan | null;
   payment_method: string | null;
   payment_amount: number | null;
   payment_completed_at: string | null;
@@ -396,9 +401,21 @@ export const REGISTRATION_STATUS_CONFIG: Record<RegistrationStatus, { label: str
 
 export const PAYMENT_STATUS_CONFIG: Record<RegistrationPaymentStatus, { label: string; color: string }> = {
   pending: { label: 'Čeká na platbu', color: '#F59E0B' },
+  partial: { label: 'Záloha zaplacena', color: '#F59E0B' },
   completed: { label: 'Zaplaceno', color: '#10B981' },
   refunded: { label: 'Vráceno', color: '#64748B' },
 };
+
+/**
+ * Štítek a barva stavu platby. Hodnota mimo známé stavy (nový stav z webu,
+ * který hub ještě nezná) nesmí shodit stránku — ukáže se jako surový text šedě.
+ */
+export function paymentStatusConfig(status: string): { label: string; color: string } {
+  if (Object.prototype.hasOwnProperty.call(PAYMENT_STATUS_CONFIG, status)) {
+    return PAYMENT_STATUS_CONFIG[status as RegistrationPaymentStatus];
+  }
+  return { label: status || 'Neznámý stav', color: '#64748B' };
+}
 
 // ===== CHILDREN DATABASE =====
 
