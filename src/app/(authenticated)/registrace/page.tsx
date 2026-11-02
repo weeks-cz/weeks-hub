@@ -27,6 +27,7 @@ export default function RegistracePage() {
   const [statusFilter, setStatusFilter] = useState<'all' | RegistrationStatus>('all');
   const [jenPozornost, setJenPozornost] = useState(false);
   const [hledani, setHledani] = useState('');
+  const [minule, setMinule] = useState(false);
   const [selected, setSelected] = useState<Registration | null>(null);
 
   if (!isAdmin(user?.role)) {
@@ -50,7 +51,16 @@ export default function RegistracePage() {
     obsahuje(r.parent_email, dotaz) ||
     obsahuje(r.parent_phone, dotaz);
 
-  const groups = byTerm
+  // Turnusy, které už skončily, se ve výchozím stavu schovají — tým chce na
+  // prvním místě vidět aktuální sezónu. Hledání prochází i minulé turnusy:
+  // dotaz na rodiče z loňska by jinak vrátil „nic nesedí“.
+  const dnes = new Date().toISOString().slice(0, 10);
+  const jeMinuly = (g: { termEnd: string }) => !!g.termEnd && g.termEnd.slice(0, 10) < dnes;
+  const pocetMinulych = byTerm.filter(jeMinuly).length;
+  const zobrazitMinule = minule || !!dotaz;
+  const viditelneTurnusy = byTerm.filter((g) => zobrazitMinule || !jeMinuly(g));
+
+  const groups = viditelneTurnusy
     .map((g) => {
       const registrations = g.registrations
         .filter((r) => statusFilter === 'all' || r.status === statusFilter)
@@ -62,7 +72,7 @@ export default function RegistracePage() {
     // ještě prázdný); při filtrování nebo hledání by jen překážel.
     .filter((g) => g.registrations.length > 0 || (statusFilter === 'all' && !jenPozornost && !dotaz));
 
-  const vsechny = byTerm.flatMap((g) => g.registrations);
+  const vsechny = viditelneTurnusy.flatMap((g) => g.registrations);
   const pocetPozornost = vsechny.filter((r) => vyzadujePozornost(r)).length;
   const pocetStavu = (v: 'all' | RegistrationStatus) =>
     v === 'all' ? vsechny.length : vsechny.filter((r) => r.status === v).length;
@@ -93,6 +103,21 @@ export default function RegistracePage() {
               )}
             >
               Vyžaduje pozornost <span className="tabular-nums">{pocetPozornost}</span>
+            </button>
+          )}
+
+          {pocetMinulych > 0 && (
+            <button
+              onClick={() => setMinule((v) => !v)}
+              className={cn(
+                'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
+                minule
+                  ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)]'
+              )}
+            >
+              {minule ? 'Skrýt minulé turnusy' : 'Minulé turnusy'}{' '}
+              <span className="text-xs opacity-60 tabular-nums">{pocetMinulych}</span>
             </button>
           )}
 
