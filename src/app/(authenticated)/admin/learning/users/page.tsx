@@ -4,96 +4,74 @@ import { createIotAdminClient } from '@/lib/supabase/iot-server';
 import { jeAdmin } from '@/lib/auth/jeAdmin';
 import { NemasOpravneni } from '@/components/ui/NemasOpravneni';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { jeInterni } from '@/lib/utils/ucebna';
 
 export const dynamic = 'force-dynamic';
 
 /** Kolik posledních účtů vypisujeme. */
 const LIMIT = 100;
 
-type Zdroj = 'pin-link' | 'web-register' | 'unknown';
-
 interface UserRow {
   id: string;
   email: string;
-  nickname: string | null;
+  deti: string[];
+  zdroj: string | null;
+  interni: boolean;
+  onboarding: boolean;
   created_at: string;
   updated_at: string;
   completed_count: number;
-  source: Zdroj;
 }
-
-const ZDROJ: Record<Zdroj, { label: string; trida: string }> = {
-  'pin-link': { label: 'Z tábora', trida: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
-  'web-register': { label: 'Z webu', trida: 'bg-blue-500/10 text-blue-600 dark:text-blue-400' },
-  unknown: { label: 'Neznámý', trida: 'bg-[var(--bg-surface-hover)] text-[var(--text-muted)]' },
-};
 
 /**
- * E-maily k účtům.
- *
- * Dřív se pro každý účet volalo `getUserById` zvlášť — sto volání auth API na
- * jedno otevření stránky. `listUsers` vrátí totéž v pár dávkách.
+ * Účty rodičů z učebny v2 (`parents` → `children` → `progress`). Dřív se četla
+ * tabulka `learning_accounts` z původní učebny, která už neexistuje — stránka
+ * pak tvrdila „zatím se nepřipojil nikdo“.
  */
-async function nactiEmaily(iot: ReturnType<typeof createIotAdminClient>, idcka: Set<string>) {
-  const mapa = new Map<string, string>();
-  const NA_STRANKU = 200;
-  const MAX_STRANEK = 10;
-
-  for (let strana = 1; strana <= MAX_STRANEK; strana++) {
-    const { data, error } = await iot.auth.admin.listUsers({ page: strana, perPage: NA_STRANKU });
-    if (error || !data?.users?.length) break;
-    for (const u of data.users) {
-      if (idcka.has(u.id)) mapa.set(u.id, u.email ?? '—');
-    }
-    // Máme všechny hledané, zbytek stránek už nemá co přidat.
-    if (mapa.size === idcka.size || data.users.length < NA_STRANKU) break;
-  }
-  return mapa;
-}
-
-async function fetchUsers(): Promise<UserRow[]> {
+async function fetchUsers(): Promise<{ users: UserRow[]; chyba: string | null }> {
   const iot = createIotAdminClient();
 
-  const { data: accounts } = await iot
-    .from('learning_accounts')
-    .select('id, state, created_at, updated_at')
+  const { data: parents, error } = await iot
+    .from('parents')
+    .select('id, email, utm_source, utm_medium, onboarding_completed_at, created_at, updated_at')
     .order('created_at', { ascending: false })
     .limit(LIMIT);
 
-  if (!accounts?.length) return [];
+  if (error) return { users: [], chyba: error.message };
+  if (!parents?.length) return { users: [], chyba: null };
 
-  const userIds = new Set(accounts.map((a) => a.id as string));
-  const [emailById, { data: signups }] = await Promise.all([
-    nactiEmaily(iot, userIds),
-    iot
-      .from('learning_events')
-      .select('user_id, metadata')
-      .eq('event_type', 'signup')
-      .in('user_id', [...userIds]),
-  ]);
+  const { data: children, error: chybaDeti } = await iot
+    .from('children')
+    .select('id, parent_id, nick')
+    .is('archived_at', null)
+    .in('parent_id', parents.map((p) => p.id as string));
 
-  const sourceById = new Map<string, Exclude<Zdroj, 'unknown'>>();
-  for (const s of signups ?? []) {
-    const src = (s.metadata as { source?: string } | null)?.source;
-    if (s.user_id && (src === 'pin-link' || src === 'web-register')) {
-      sourceById.set(s.user_id as string, src);
-    }
+  const childIds = (children ?? []).map((c) => c.id as string);
+  const { data: progress, error: chybaPostupu } = childIds.length
+    ? await iot.from('progress').select('child_id').eq('status', 'completed').in('child_id', childIds)
+    : { data: [], error: null };
+
+  const hotovoPodleDitete = new Map<string, number>();
+  for (const p of progress ?? []) {
+    hotovoPodleDitete.set(p.child_id as string, (hotovoPodleDitete.get(p.child_id as string) ?? 0) + 1);
   }
 
-  return accounts.map((a) => {
-    const tasks = (a.state as { tasks?: Record<string, { status?: string }> } | null)?.tasks ?? {};
-    const completed = Object.values(tasks).filter((t) => t?.status === 'completed').length;
-    const nickname = (a.state as { account?: { nickname?: string } } | null)?.account?.nickname ?? null;
+  const users = parents.map((p) => {
+    const jehoDeti = (children ?? []).filter((c) => c.parent_id === p.id);
     return {
-      id: a.id as string,
-      email: emailById.get(a.id as string) ?? '—',
-      nickname,
-      created_at: a.created_at as string,
-      updated_at: a.updated_at as string,
-      completed_count: completed,
-      source: sourceById.get(a.id as string) ?? 'unknown',
+      id: p.id as string,
+      email: (p.email as string | null) ?? '—',
+      deti: jehoDeti.map((c) => (c.nick as string | null) ?? '—'),
+      zdroj: p.utm_source ? `${p.utm_source}${p.utm_medium ? ` / ${p.utm_medium}` : ''}` : null,
+      interni: jeInterni(p.email as string | null),
+      onboarding: Boolean(p.onboarding_completed_at),
+      created_at: p.created_at as string,
+      updated_at: p.updated_at as string,
+      completed_count: jehoDeti.reduce((s, c) => s + (hotovoPodleDitete.get(c.id as string) ?? 0), 0),
     };
   });
+
+  return { users, chyba: chybaDeti?.message ?? chybaPostupu?.message ?? null };
 }
 
 const formatDatum = new Intl.DateTimeFormat('cs-CZ', { day: 'numeric', month: 'numeric', year: 'numeric' });
@@ -104,7 +82,7 @@ const formatCas = new Intl.DateTimeFormat('cs-CZ', {
 export default async function LearningUsersPage() {
   if (!(await jeAdmin())) return <NemasOpravneni sekce="Learning" />;
 
-  const users = await fetchUsers();
+  const { users, chyba } = await fetchUsers();
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -113,8 +91,8 @@ export default async function LearningUsersPage() {
         title="Účty v Learning"
         subtitle={
           users.length === 0
-            ? 'Zatím se nepřipojil nikdo'
-            : `Posledních ${users.length} připojených účtů`
+            ? 'Zatím se nezaregistroval nikdo'
+            : `Posledních ${users.length} účtů rodičů`
         }
         actions={
           <Link
@@ -127,11 +105,17 @@ export default async function LearningUsersPage() {
         }
       />
 
+      {chyba && (
+        <div className="rounded-2xl border border-[var(--color-error)] bg-[var(--bg-surface)] p-4 text-sm text-[var(--color-error)]">
+          Data z učebny se nepodařilo načíst celá: {chyba}
+        </div>
+      )}
+
       {users.length === 0 ? (
         <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-10 text-center">
           <p className="text-sm text-[var(--text-primary)]">Žádné účty</p>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
-            Účty vznikají, když si dítě propojí aplikaci PINem z tábora nebo se zaregistruje na webu.
+            Účet zakládá rodič na ucebna.weeks.cz. Děti se můžou učit i bez něj, ty tu nejsou.
           </p>
         </div>
       ) : (
@@ -140,24 +124,28 @@ export default async function LearningUsersPage() {
             <table className="w-full text-sm">
               <thead className="bg-[var(--bg-surface-hover)] text-left">
                 <tr>
-                  {['E-mail', 'Přezdívka', 'Zdroj', 'Registrace', 'Poslední aktivita'].map((h) => (
+                  {['E-mail', 'Děti', 'Zdroj', 'Registrace', 'Poslední změna'].map((h) => (
                     <th key={h} className="px-4 py-3 text-xs font-medium text-[var(--text-muted)]">
                       {h}
                     </th>
                   ))}
                   <th className="px-4 py-3 text-right text-xs font-medium text-[var(--text-muted)]">
-                    Splněné úkoly
+                    Dokončené lekce
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border-default)]">
                 {users.map((u) => (
                   <tr key={u.id} className="transition-colors hover:bg-[var(--bg-surface-hover)]">
-                    <td className="px-4 py-3 font-mono text-xs text-[var(--text-secondary)]">{u.email}</td>
-                    <td className="px-4 py-3 text-[var(--text-primary)]">{u.nickname ?? '—'}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-[var(--text-secondary)]">
+                      {u.email}
+                      {u.interni && <span className="ml-2 font-sans text-[var(--text-muted)]">(tým/test)</span>}
+                      {!u.onboarding && <span className="ml-2 font-sans text-[var(--text-muted)]">(nedokončil)</span>}
+                    </td>
+                    <td className="px-4 py-3 text-[var(--text-primary)]">{u.deti.length ? u.deti.join(', ') : '—'}</td>
                     <td className="px-4 py-3">
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${ZDROJ[u.source].trida}`}>
-                        {ZDROJ[u.source].label}
+                      <span className="rounded-full bg-[var(--bg-surface-hover)] px-2 py-0.5 text-xs font-medium text-[var(--text-muted)]">
+                        {u.zdroj ?? 'přímo'}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">

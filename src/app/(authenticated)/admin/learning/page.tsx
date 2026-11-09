@@ -4,6 +4,7 @@ import { createIotAdminClient } from '@/lib/supabase/iot-server';
 import { jeAdmin } from '@/lib/auth/jeAdmin';
 import { NemasOpravneni } from '@/components/ui/NemasOpravneni';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { jeInterni } from '@/lib/utils/ucebna';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,39 +22,59 @@ function klicDne(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+type Udalost = {
+  type: string;
+  props: { order?: number; lesson?: string } | null;
+  parent_id: string | null;
+  anon_id: string | null;
+  created_at: string;
+};
+
+/**
+ * Čte schéma učebny v2 (od 29. 8. 2026: parents / children / learning_events
+ * s `type` a `props`). Do listopadu 2026 se tu ptalo na `learning_accounts`
+ * a `event_type` z původní učebny — tabulky, které už neexistují, a protože se
+ * chyba měnila na `?? 0`, stránka tři měsíce ukazovala nuly. Chyby se proto
+ * teď vrací a stránka je ukáže.
+ */
 async function fetchStats() {
   const iot = createIotAdminClient();
   const pred7 = predDny(7).toISOString();
   const pred30 = predDny(DNU_ZPET).toISOString();
 
-  const [
-    totalAccountsRes,
-    active7dRes,
-    completes7dRes,
-    pinLinkRes,
-    webRegisterRes,
-    signups30dRes,
-    topTasks7dRes,
-  ] = await Promise.all([
-    iot.from('learning_accounts').select('*', { count: 'exact', head: true }),
-    iot.from('learning_accounts').select('*', { count: 'exact', head: true })
-       .gte('updated_at', pred7),
-    iot.from('learning_events').select('*', { count: 'exact', head: true })
-       .eq('event_type', 'task_complete').gte('created_at', pred7),
-    iot.from('learning_events').select('*', { count: 'exact', head: true })
-       .eq('event_type', 'signup').contains('metadata', { source: 'pin-link' }),
-    iot.from('learning_events').select('*', { count: 'exact', head: true })
-       .eq('event_type', 'signup').contains('metadata', { source: 'web-register' }),
-    iot.from('learning_events').select('created_at')
-       .eq('event_type', 'signup').gte('created_at', pred30),
-    iot.from('learning_events').select('task_id')
-       .eq('event_type', 'task_complete').gte('created_at', pred7)
-       .not('task_id', 'is', null),
+  const [parentsRes, childrenRes, eventsRes] = await Promise.all([
+    iot.from('parents').select('id, email, created_at, onboarding_completed_at, utm_source'),
+    iot.from('children').select('id', { count: 'exact', head: true }).is('archived_at', null),
+    iot.from('learning_events')
+       .select('type, props, parent_id, anon_id, created_at')
+       .in('type', ['lesson_start', 'lesson_complete'])
+       .gte('created_at', pred30)
+       .limit(10000),
   ]);
 
+  const chyby = [parentsRes.error, childrenRes.error, eventsRes.error]
+    .filter(Boolean)
+    .map((e) => e!.message);
+
+  const rodice = (parentsRes.data ?? []).filter((p) => !jeInterni(p.email as string | null));
+  const udalosti = (eventsRes.data ?? []) as Udalost[];
+  const kdo = (u: Udalost) => u.parent_id ?? u.anon_id ?? '?';
+
+  const posledni7 = udalosti.filter((u) => u.created_at >= pred7);
+  const aktivni7 = new Set(posledni7.filter((u) => u.type === 'lesson_start').map(kdo));
+  const dokonceno7 = posledni7.filter((u) => u.type === 'lesson_complete');
+
+  // Hlavní metrika Brány 1: kolik z těch, kdo začali lekci 1, ji dokončilo
+  // (včetně anonymních návštěvníků — jmenovatel bez nich nedává smysl).
+  const lekce1 = (typ: string) =>
+    new Set(udalosti.filter((u) => u.type === typ && Number(u.props?.order) === 1).map(kdo));
+  const zacaloL1 = lekce1('lesson_start');
+  const dokonciloL1 = [...lekce1('lesson_complete')].filter((k) => zacaloL1.has(k)).length;
+
   const podleDne: Record<string, number> = {};
-  for (const row of signups30dRes.data ?? []) {
-    const den = (row.created_at as string).slice(0, 10);
+  for (const p of rodice) {
+    if ((p.created_at as string) < pred30) continue;
+    const den = klicDne(new Date(p.created_at as string));
     podleDne[den] = (podleDne[den] ?? 0) + 1;
   }
 
@@ -66,21 +87,25 @@ async function fetchStats() {
   });
 
   const pocty: Record<string, number> = {};
-  for (const row of topTasks7dRes.data ?? []) {
-    if (row.task_id) pocty[row.task_id] = (pocty[row.task_id] ?? 0) + 1;
+  for (const u of dokonceno7) {
+    const lekce = u.props?.lesson;
+    if (lekce) pocty[lekce] = (pocty[lekce] ?? 0) + 1;
   }
   const topTasks = Object.entries(pocty)
     .sort((a, b) => b[1]! - a[1]!)
     .slice(0, 10);
 
   return {
-    totalAccounts: totalAccountsRes.count ?? 0,
-    active7d: active7dRes.count ?? 0,
-    completes7d: completes7dRes.count ?? 0,
-    pinLink: pinLinkRes.count ?? 0,
-    webRegister: webRegisterRes.count ?? 0,
+    chyby,
+    totalAccounts: rodice.filter((p) => p.onboarding_completed_at).length,
+    deti: childrenRes.count ?? 0,
+    active7d: aktivni7.size,
+    completes7d: dokonceno7.length,
+    zKampane: rodice.filter((p) => p.utm_source).length,
+    zacaloL1: zacaloL1.size,
+    dokonciloL1,
     dny,
-    signupyCelkem: (signups30dRes.data ?? []).length,
+    signupyCelkem: Object.values(podleDne).reduce((a, b) => a + b, 0),
     topTasks,
   };
 }
@@ -122,18 +147,31 @@ export default async function LearningStatsPage() {
         }
       />
 
+      {stats.chyby.length > 0 && (
+        <div className="rounded-2xl border border-[var(--color-error)] bg-[var(--bg-surface)] p-4 text-sm text-[var(--color-error)]">
+          Data z učebny se nepodařilo načíst celá, čísla níže mohou být neúplná: {stats.chyby.join(' · ')}
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-        <StatCard label="Účty celkem" value={stats.totalAccounts} />
-        <StatCard label="Aktivních" value={stats.active7d} popis="za 7 dní" />
-        <StatCard label="Splněných úkolů" value={stats.completes7d} popis="za 7 dní" />
-        <StatCard label="Z táborů" value={stats.pinLink} popis="přes PIN" />
-        <StatCard label="Z webu" value={stats.webRegister} popis="vlastní registrace" />
+        <StatCard label="Registrovaní rodiče" value={stats.totalAccounts} popis="dokončený onboarding, bez týmu" />
+        <StatCard label="Dětské profily" value={stats.deti} />
+        <StatCard label="Z kampaně" value={stats.zKampane} popis="účty s UTM" />
+        <StatCard label="Učilo se" value={stats.active7d} popis="za 7 dní, i bez účtu" />
+        <StatCard label="Dokončených lekcí" value={stats.completes7d} popis="za 7 dní" />
+        <StatCard
+          label="Dokončili lekci 1"
+          value={stats.dokonciloL1}
+          popis={`z ${stats.zacaloL1} co začali (${DNU_ZPET} dní${
+            stats.zacaloL1 ? `, ${Math.round((stats.dokonciloL1 / stats.zacaloL1) * 100)} %` : ''
+          })`}
+        />
       </div>
 
       <section className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-5">
         <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="font-[family-name:var(--font-heading)] text-sm font-semibold text-[var(--text-primary)]">
-            Nové účty
+            Noví rodiče
           </h2>
           <span className="text-xs text-[var(--text-muted)]">
             {stats.signupyCelkem === 0
@@ -146,8 +184,7 @@ export default async function LearningStatsPage() {
             nikdo nepřipojil, řekne se to větou. */}
         {stats.signupyCelkem === 0 ? (
           <p className="text-sm text-[var(--text-muted)]">
-            Za posledních {DNU_ZPET} dní se nepřipojil žádný nový účet. Nové vznikají PINem
-            z tábora nebo registrací na webu.
+            Za posledních {DNU_ZPET} dní nezaložil účet žádný nový rodič.
           </p>
         ) : (
           <>
@@ -180,13 +217,13 @@ export default async function LearningStatsPage() {
       <section className="overflow-hidden rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)]">
         <div className="flex flex-wrap items-baseline justify-between gap-2 px-5 py-4">
           <h2 className="font-[family-name:var(--font-heading)] text-sm font-semibold text-[var(--text-primary)]">
-            Nejčastěji dokončené úkoly
+            Nejčastěji dokončené lekce
           </h2>
           <span className="text-xs text-[var(--text-muted)]">7 dní</span>
         </div>
         {stats.topTasks.length === 0 ? (
           <p className="px-5 pb-5 text-sm text-[var(--text-muted)]">
-            Za posledních 7 dní nikdo nedokončil žádný úkol.
+            Za posledních 7 dní nikdo nedokončil žádnou lekci.
           </p>
         ) : (
           <ol className="divide-y divide-[var(--border-default)] border-t border-[var(--border-default)]">
