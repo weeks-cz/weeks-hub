@@ -126,10 +126,19 @@ export function TaskDetailPanel({
     setEditingDescription(false);
   };
 
+  // Ukládá se až při opuštění pole nebo Enteru, ne v onChange: při ručním
+  // psaní roku Chrome hlásí platné datum už po první číslici (0002, 0020,
+  // 0202) a uložení by pole zavřelo uprostřed psaní — takhle vznikly termíny
+  // s rokem 0020 v marketingovém plánu (11/2026).
   const saveDueDate = async (value: string) => {
-    setDueDate(value);
-    await onUpdate(task.id, { due_date: value || null });
     setEditingDueDate(false);
+    const rok = Number(value.slice(0, 4));
+    if (value && (rok < 2000 || rok > 2100)) {
+      setDueDate(task.due_date || '');
+      return;
+    }
+    if (value === (task.due_date || '')) return;
+    await onUpdate(task.id, { due_date: value || null });
   };
 
   const handleMarkComplete = async () => {
@@ -315,8 +324,13 @@ export function TaskDetailPanel({
                       <input
                         type="date"
                         value={dueDate}
-                        onChange={(e) => saveDueDate(e.target.value)}
-                        onBlur={() => setEditingDueDate(false)}
+                        min="2000-01-01"
+                        max="2100-12-31"
+                        onChange={(e) => setDueDate(e.target.value)}
+                        onBlur={(e) => saveDueDate(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') e.currentTarget.blur();
+                        }}
                         autoFocus
                         className="px-2.5 py-1.5 rounded-lg bg-[var(--bg-surface-hover)] text-sm text-[var(--text-primary)] border border-[var(--color-primary)] outline-none"
                       />
